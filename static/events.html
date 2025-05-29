@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>首頁 | Pitch-A-Seat</title>
+    <title>售票中場次 | Pitch-A-Seat</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
       rel="stylesheet"
@@ -15,7 +15,6 @@
         padding-top: 60px;
       }
 
-      /* 導覽列 */
       .navigation {
         display: flex;
         justify-content: center;
@@ -38,30 +37,19 @@
       }
 
       .webtitle {
-        width: 300px;
-        height: 34px;
-        font-weight: 700;
         font-size: 30px;
+        font-weight: 700;
         color: #ffffff;
         line-height: 34px;
         cursor: pointer;
       }
 
-      .nav-item {
-        display: flex;
-        height: 34px;
-      }
-
-      .cart-link,
-      .memberpage-link {
+      .nav-item > div {
+        color: white;
         padding: 10px;
-        font-size: 16px;
-        font-weight: 500;
-        color: #ffffff;
         cursor: pointer;
       }
 
-      /* 月曆區塊 */
       .calendar-controls {
         display: flex;
         justify-content: center;
@@ -117,31 +105,7 @@
         border-radius: 4px;
         margin-top: 3px;
         line-height: 1.2;
-      }
-
-      /* 按鈕區 */
-      .sell-buy-button {
-        margin-top: 40px;
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-      }
-
-      .btn-sell,
-      .btn-buy {
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        background-color: #007bff;
-        color: white;
-        border-radius: 4px;
         cursor: pointer;
-      }
-
-      .btn-sell:hover,
-      .btn-buy:hover {
-        background-color: #0056b3;
       }
     </style>
   </head>
@@ -168,14 +132,7 @@
     <!-- 賽程月曆 -->
     <div class="calendar" id="calendar"></div>
 
-    <!-- 賣票買票按鈕 -->
-    <div class="sell-buy-button">
-      <button type="button" class="btn-sell">我要賣票</button>
-      <button type="button" class="btn-buy">我要買票</button>
-    </div>
-
     <script>
-      // 顯示初始月曆
       const calendar = document.getElementById("calendar");
       const monthLabel = document.getElementById("monthLabel");
       const now = new Date();
@@ -206,14 +163,14 @@
           calendar.appendChild(blank);
         }
 
-        fetch(`/api/schedule?year=${year}&month=${month}`)
+        fetch(`/api/events?year=${year}&month=${month}`)
           .then((res) => res.json())
           .then((games) => {
             const gameMap = {};
-            games.forEach((game) => {
-              const day = new Date(game.game_date).getDate();
+            games.forEach((g) => {
+              const day = new Date(g.game_date).getDate();
               if (!gameMap[day]) gameMap[day] = [];
-              gameMap[day].push(game);
+              gameMap[day].push(g);
             });
 
             for (let i = 1; i <= daysInMonth; i++) {
@@ -230,10 +187,15 @@
                   const e = document.createElement("div");
                   e.className = "event";
                   e.innerHTML = `
-                  <div>${g.stadium} (${g.game_number})</div>
-                  <div>${g.team_away} vs ${g.team_home}</div>
-                  <div>${g.start_time.slice(0, 5)}</div>
-                `;
+                    <div>${g.team_away} vs ${g.team_home}</div>
+                    <div>場次：${g.game_number}</div>
+                    <div>${g.stadium}</div>
+                    <div>${g.start_time}</div>
+                    <div>熱賣中：${g.ticket_count} 張</div>
+                  `;
+                  e.addEventListener("click", () => {
+                    window.location.href = `/browse?game_id=${g.game_id}`;
+                  });
                   dayBox.appendChild(e);
                 });
               }
@@ -243,7 +205,6 @@
           });
       }
 
-      // 上下月切換
       document.getElementById("prevMonth").addEventListener("click", () => {
         currentMonth--;
         if (currentMonth === 0) {
@@ -262,32 +223,16 @@
         renderCalendar(currentYear, currentMonth);
       });
 
-      // 首頁導覽按鈕
       document.querySelector(".webtitle").addEventListener("click", () => {
-        location.reload();
-      });
-
-      document.querySelector(".btn-sell").addEventListener("click", () => {
-        fetch("/sell", { method: "GET" }).then((res) => {
-          window.location.href = res.url;
-        });
-      });
-
-      document.querySelector(".btn-buy").addEventListener("click", () => {
-        fetch("/events", { method: "GET" }).then((res) => {
-          window.location.href = res.url;
-        });
+        window.location.href = "/";
       });
 
       document
         .querySelector(".memberpage-link")
         .addEventListener("click", () => {
-          fetch("/membership", { method: "GET" }).then((res) => {
-            window.location.href = res.url;
-          });
+          window.location.href = "/membership";
         });
 
-      // 首次載入
       renderCalendar(currentYear, currentMonth);
     </script>
   </body>

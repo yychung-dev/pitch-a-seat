@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>票券瀏覽 | Pitch-A-Seat</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #f9f9f9;
+        padding-top: 60px;
+        margin: 0;
+      }
+
+      .navigation {
+        display: flex;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: black;
+        padding: 10px 0;
+        z-index: 100;
+      }
+
+      .navlist {
+        display: flex;
+        justify-content: space-between;
+        width: 1200px;
+      }
+
+      .webtitle {
+        font-size: 30px;
+        font-weight: 700;
+        color: #fff;
+        cursor: pointer;
+      }
+
+      .nav-item > div {
+        color: white;
+        padding: 10px;
+        cursor: pointer;
+      }
+
+      .filters {
+        max-width: 1200px;
+        margin: 20px auto;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .filters select {
+        padding: 8px;
+        font-size: 14px;
+      }
+
+      .tickets {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 800px; /* 適當限制寬度，depends on the need */
+        margin: 20px auto;
+        padding: 0 10px;
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+
+      .ticket {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .ticket .photo {
+        position: relative;
+        width: 100%;
+        height: 180px;
+        overflow: hidden;
+      }
+
+      .ticket .photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .photo-nav {
+        position: absolute;
+        top: 50%;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        transform: translateY(-50%);
+        padding: 0 10px;
+      }
+
+      .photo-nav span {
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      .photo-dots {
+        text-align: center;
+        margin-top: 5px;
+      }
+
+      .photo-dots span {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin: 0 2px;
+        border-radius: 50%;
+        background: #ccc;
+      }
+
+      .photo-dots .active {
+        background: #333;
+      }
+
+      .stars {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 4px 0;
+      }
+      .stars .filled {
+        color: #f1c40f;
+        -webkit-text-stroke: 0;
+      }
+
+      .star-icon {
+        font-size: 20px;
+        color: transparent;
+        -webkit-text-stroke: 1px #f1c40f;
+      }
+
+      .star-icon.filled {
+        color: #f1c40f;
+        -webkit-text-stroke: 0;
+      }
+
+      .stars span:first-child {
+        font-size: 14px;
+        color: #333;
+      }
+
+      .ticket button {
+        margin-top: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 8px;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .ticket button:hover {
+        background-color: #0056b3;
+      }
+
+      .price {
+        font-size: 18px;
+        font-weight: bold;
+        color: #d9534f;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="navigation">
+        <div class="navlist">
+          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+          <div class="nav-item">
+            <div class="cart-link" onclick="location.href='/cart'">購物車</div>
+            <!-- <div class="memberpage-link" onclick="location.href='/membership'">
+              會員中心
+            </div> -->
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 篩選區 -->
+    <div class="filters">
+      <select id="sort">
+        <option value="created_at_desc">最新上架</option>
+        <option value="created_at_asc">最舊上架</option>
+        <option value="price_asc">價格低 → 高</option>
+        <option value="price_desc">價格高 → 低</option>
+        <option value="rating_asc">評分低 → 高</option>
+        <option value="rating_desc">評分高 → 低</option>
+      </select>
+      <label>
+        <input type="checkbox" name="area" value="內野" checked /> 內野
+      </label>
+      <label>
+        <input type="checkbox" name="area" value="外野" checked /> 外野
+      </label>
+    </div>
+
+    <!-- 商品列表 -->
+    <div class="tickets" id="ticketContainer"></div>
+
+    <script>
+      const stadiumMapLinks = {
+        台北大巨蛋: "https://maps.app.goo.gl/TzXBAJzzdujrkEei9",
+        新莊: "https://maps.app.goo.gl/bmPSvRQJZk8Qv8XT9",
+        天母: "https://maps.app.goo.gl/puqGq82rGejt12hw8",
+        樂天桃園: "https://maps.app.goo.gl/JySoJrE4idPkvFNT7",
+        洲際: "https://maps.app.goo.gl/DUbUNkbLFku3YD246",
+        斗六: "https://maps.app.goo.gl/uoCUb3aPj8hoFkyq7",
+        嘉義市: "https://maps.app.goo.gl/CDjLAYJR4WDxdF7T9",
+        台南: "https://maps.app.goo.gl/K21vjch8YNFvznQt5",
+        澄清湖: "https://maps.app.goo.gl/t3ZrbQSVeveRyUhB7",
+        花蓮: "https://maps.app.goo.gl/oGHU8vWjRWeKHRTn7",
+        台東: "https://maps.app.goo.gl/eg2LFYMP85sC37VT8",
+      };
+
+      const container = document.getElementById("ticketContainer");
+      const urlParams = new URLSearchParams(window.location.search);
+      const gameId = urlParams.get("game_id");
+
+      async function fetchTickets() {
+        // const [sort_by, sort_order] = document
+        //   .getElementById("sort")
+        //   .value.split("_");
+        const parts = document.getElementById("sort").value.split("_");
+        const sort_order = parts.pop();
+        const sort_by = parts.join("_");
+
+        const areas = Array.from(
+          document.querySelectorAll("input[name='area']:checked")
+        ).map((i) => i.value);
+
+        const res = await fetch(
+          `/api/browse_tickets?game_id=${gameId}&sort_by=${sort_by}&sort_order=${sort_order}&seat_areas=${areas.join(
+            ","
+          )}`
+        );
+        const data = await res.json();
+        renderTickets(data);
+      }
+
+      function renderTickets(tickets) {
+        container.innerHTML = "";
+        tickets.forEach((ticket) => {
+          const div = document.createElement("div");
+          div.className = "ticket";
+
+          const stars = Array.from(
+            { length: 5 },
+            (_, i) =>
+              `<span class="star-icon ${
+                i < Math.round(ticket.avg_rating || 0) ? "filled" : ""
+              }">&#9733;</span>`
+          ).join("");
+
+          let imageIndex = 0;
+          const images = ticket.image_urls;
+
+          const mapLink =
+            stadiumMapLinks[ticket.stadium] ||
+            `https://www.google.com/maps/search/${ticket.stadium}`;
+          div.innerHTML = `
+            <div><strong>${ticket.game_date}（${
+            ["日", "一", "二", "三", "四", "五", "六"][
+              new Date(ticket.game_date).getDay()
+            ]
+          }）</strong> ${ticket.start_time}</div>
+            <div class="stars"><span>賣家評分：</span>${stars}</div>
+            <div><div>${
+              ticket.stadium
+            } (<a href="${mapLink}" target="_blank">地圖</a>)</div></div>
+            <div>${ticket.team_away} vs ${ticket.team_home}</div>
+            <div>座位區域：${ticket.seat_area}</div>
+            <div>座位編號：${ticket.seat_number}</div>
+            <div class="price">NT$ ${ticket.price}</div>
+            <div class="photo">
+              <img src="${images[0]}" id="img-${ticket.id}" />
+              <div class="photo-nav">
+                <span onclick="changeImage(${ticket.id}, -1)">&#8592;</span>
+                <span onclick="changeImage(${ticket.id}, 1)">&#8594;</span>
+              </div>
+            </div>
+            <div class="photo-dots" id="dots-${ticket.id}">
+              ${images
+                .map(
+                  (_, i) =>
+                    `<span class="${i === 0 ? "active" : ""}" id="dot-${
+                      ticket.id
+                    }-${i}"></span>`
+                )
+                .join("")}
+            </div>
+            <button onclick="requestMatch(${ticket.id}, this)">要求媒合</button>
+          `;
+
+          div.dataset.images = JSON.stringify(images);
+          container.appendChild(div);
+        });
+      }
+
+      function changeImage(ticketId, direction) {
+        const img = document.getElementById(`img-${ticketId}`);
+        const dots = document.querySelectorAll(`#dots-${ticketId} span`);
+        let current = Array.from(dots).findIndex((d) =>
+          d.classList.contains("active")
+        );
+        const newIndex = (current + direction + dots.length) % dots.length;
+        const images = JSON.parse(
+          document.querySelector(`[id^="img-${ticketId}"]`).closest(".ticket")
+            .dataset.images
+        );
+        img.src = images[newIndex];
+        dots.forEach(
+          (dot, i) => (dot.className = i === newIndex ? "active" : "")
+        );
+      }
+
+      document.getElementById("sort").addEventListener("change", fetchTickets);
+      document.querySelectorAll("input[name='area']").forEach((el) => {
+        el.addEventListener("change", fetchTickets);
+      });
+
+      fetchTickets();
+
+      async function requestMatch(ticketId, button) {
+        if (button.disabled) return;
+
+        button.disabled = true;
+        button.textContent = "媒合中...";
+
+        try {
+          const res = await fetch(`/api/match_request?ticket_id=${ticketId}`, {
+            method: "POST",
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            alert("媒合請求已送出！");
+            button.textContent = "已送出";
+            button.style.backgroundColor = "#ccc";
+            button.style.cursor = "default";
+          } else {
+            alert("發送媒合請求失敗：" + data.detail);
+            button.disabled = false;
+            button.textContent = "要求媒合";
+          }
+        } catch (err) {
+          alert("伺服器錯誤，請稍後再試！");
+          console.error("媒合錯誤：", err);
+          button.disabled = false;
+          button.textContent = "要求媒合";
+        }
+      }
+    </script>
+  </body>
+</html>
