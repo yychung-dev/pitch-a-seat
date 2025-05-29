@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>刊登售票資訊 | Pitch-A-Seat</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #f9f9f9;
+        padding-top: 60px;
+      }
+      .navigation {
+        display: flex;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: black;
+        padding: 10px 0;
+        z-index: 100;
+      }
+      .navlist {
+        display: flex;
+        justify-content: space-between;
+        width: 1200px;
+      }
+      .webtitle {
+        font-size: 30px;
+        font-weight: 700;
+        color: #fff;
+        cursor: pointer;
+      }
+      .nav-item > div {
+        color: white;
+        padding: 10px;
+        cursor: pointer;
+      }
+      h1 {
+        text-align: center;
+        margin: 20px;
+      }
+      form {
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 6px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+      }
+      .dynamic-fields {
+        margin-top: 10px;
+        padding: 10px;
+        background: #f2f2f2;
+        border-radius: 5px;
+      }
+      .ticket-block {
+        margin-bottom: 20px;
+        padding: 10px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="navigation">
+        <div class="navlist">
+          <div class="webtitle">Pitch-A-Seat</div>
+          <div class="nav-item">
+            <div class="cart-link">購物車</div>
+            <div class="memberpage-link">會員中心</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <h1>填寫賣票資訊</h1>
+    <form id="sellForm">
+      <div class="form-group">
+        <label for="date">日期</label>
+        <input type="date" id="date" required />
+      </div>
+      <div class="form-group">
+        <label for="time">開賽時間</label>
+        <input type="time" id="time" step="300" required />
+      </div>
+      <div class="form-group">
+        <label for="venue">球場</label>
+        <select id="venue" required>
+          <option value="">請選擇</option>
+          <option>台北大巨蛋</option>
+          <option>新莊</option>
+          <option>天母</option>
+          <option>樂天桃園</option>
+          <option>洲際</option>
+          <option>斗六</option>
+          <option>嘉義市</option>
+          <option>台南</option>
+          <option>澄清湖</option>
+          <option>花蓮</option>
+          <option>台東</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>對戰球隊</label>
+        <div style="display: flex; gap: 10px">
+          <select id="team1" required>
+            <option value="">主場球隊</option>
+            <option>中信兄弟</option>
+            <option>富邦悍將</option>
+            <option>樂天桃猿</option>
+            <option>統一7-ELEVEn獅</option>
+            <option>味全龍</option>
+            <option>台鋼雄鷹</option>
+          </select>
+          <select id="team2" required>
+            <option value="">客場球隊</option>
+            <option>中信兄弟</option>
+            <option>富邦悍將</option>
+            <option>樂天桃猿</option>
+            <option>統一7-ELEVEn獅</option>
+            <option>味全龍</option>
+            <option>台鋼雄鷹</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>官方場次編號</label>
+        <input type="text" id="gameNumber" disabled placeholder="自動帶出" />
+      </div>
+
+      <!-- <div class="form-group">
+        <label for="price">單張票價</label>
+        <input type="number" id="price" min="0" required />
+      </div> -->
+
+      <div class="form-group">
+        <label for="quantity">張數</label>
+        <input type="number" id="quantity" min="1" value="1" required />
+      </div>
+
+      <div class="dynamic-fields" id="ticketContainer">
+        <!-- 動態生成的欄位放這裡 -->
+      </div>
+
+      <!-- <div class="form-group">
+        <label for="note">備註</label>
+        <textarea id="note" rows="3"></textarea>
+      </div> -->
+
+      <button type="submit">送出</button>
+    </form>
+
+    <script>
+      const quantityInput = document.getElementById("quantity");
+      const container = document.getElementById("ticketContainer");
+      const sellForm = document.getElementById("sellForm");
+
+      function createTicketFields(index) {
+        return `
+          <div class="ticket-block">
+            <div class="form-group">
+              <label>座位編號（票 ${index + 1}）</label>
+              <input type="text" name="seat_number_${index}" required />
+            </div>
+            <div class="form-group">
+              <label>座位區域</label>
+              <select name="seat_area_${index}" required>
+                <option value="">請選擇</option>
+                <option>內野</option>
+                <option>外野</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>單張票價</label>
+              <input type="number" name="price_${index}" min="0" required />
+            </div>
+            <div class="form-group">
+              <label>備註</label>
+              <textarea name="note_${index}" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+              <label>上傳票券照片</label>
+              <input type="file" name="image_${index}" multiple required />
+            </div>
+          </div>
+        `;
+      }
+
+      function updateTicketFields() {
+        const quantity = parseInt(quantityInput.value);
+        container.innerHTML = "";
+        for (let i = 0; i < quantity; i++) {
+          container.innerHTML += createTicketFields(i);
+        }
+      }
+
+      quantityInput.addEventListener("change", updateTicketFields);
+      window.addEventListener("load", updateTicketFields);
+
+      async function fetchGameNumber() {
+        const date = document.getElementById("date").value;
+        const time = document.getElementById("time").value;
+        const venue = document.getElementById("venue").value;
+        const team1 = document.getElementById("team1").value;
+        const team2 = document.getElementById("team2").value;
+
+        if (!date || !venue || !team1 || !team2 || team1 === team2) return;
+
+        try {
+          const res = await fetch(
+            `/api/match?date=${date}&stadium=${venue}&team1=${team1}&team2=${team2}`
+          );
+          if (!res.ok) {
+            document.getElementById("gameNumber").value = "查無場次";
+            return;
+          }
+          const data = await res.json();
+          document.getElementById("gameNumber").value = data.game_number;
+        } catch {
+          document.getElementById("gameNumber").value = "查詢錯誤";
+        }
+      }
+
+      document
+        .getElementById("date")
+        .addEventListener("change", fetchGameNumber);
+      document
+        .getElementById("venue")
+        .addEventListener("change", fetchGameNumber);
+      document
+        .getElementById("team1")
+        .addEventListener("change", fetchGameNumber);
+      document
+        .getElementById("team2")
+        .addEventListener("change", fetchGameNumber);
+
+      sellForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const quantity = parseInt(document.getElementById("quantity").value);
+        const gameNumber = document.getElementById("gameNumber").value;
+
+        if (
+          !gameNumber ||
+          gameNumber === "查無場次" ||
+          gameNumber === "查詢錯誤"
+        ) {
+          alert("請先選取正確場次");
+          return;
+        }
+
+        // 查 game_id
+        const date = document.getElementById("date").value;
+        const stadium = document.getElementById("venue").value;
+        const team1 = document.getElementById("team1").value;
+        const team2 = document.getElementById("team2").value;
+
+        let gameId;
+        try {
+          const res = await fetch(
+            `/api/match?date=${date}&stadium=${stadium}&team1=${team1}&team2=${team2}`
+          );
+          const data = await res.json();
+          gameId = data.game_id;
+        } catch {
+          alert("查詢比賽編號失敗");
+          return;
+        }
+
+        const formData = new FormData();
+        const tickets = [];
+
+        for (let i = 0; i < quantity; i++) {
+          const seatNumber = document.querySelector(
+            `[name=seat_number_${i}]`
+          ).value;
+          const seatArea = document.querySelector(
+            `[name=seat_area_${i}]`
+          ).value;
+          const price = document.querySelector(`[name=price_${i}]`).value;
+          const note = document.querySelector(`[name=note_${i}]`).value;
+
+          // 取得圖片
+          const fileInput = document.querySelector(`[name=image_${i}]`);
+          const files = fileInput.files;
+
+          // 驗證是否有圖片
+          if (files.length === 0) {
+            alert(`第 ${i + 1} 張票未上傳任何圖片`);
+            return;
+          }
+
+          for (const file of files) {
+            const ext = file.name.split(".").pop().toLowerCase();
+            const sizeMB = file.size / 1024 / 1024;
+
+            // 驗證副檔名
+            if (!["jpg", "jpeg", "png"].includes(ext)) {
+              alert(`圖片格式錯誤：第 ${i + 1} 張票含有非 jpg/png 圖片`);
+              return;
+            }
+
+            // 驗證大小限制
+            if (sizeMB > 5) {
+              alert(`圖片過大：第 ${i + 1} 張票的某張圖片超過 5MB`);
+              return;
+            }
+
+            const filename = `${i}_${file.name}`;
+            const renamedFile = new File([file], filename, { type: file.type });
+            formData.append("images", renamedFile);
+          }
+
+          tickets.push({
+            seat_number: seatNumber,
+            seat_area: seatArea,
+            price: parseInt(price),
+            note: note,
+          });
+        }
+
+        formData.append("game_id", gameId);
+        formData.append("tickets", JSON.stringify(tickets));
+
+        try {
+          const res = await fetch("/api/sell_tickets", {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await res.json();
+          if (res.ok) {
+            alert(`成功送出 ${result.count} 張票！`);
+            sellForm.reset();
+            updateTicketFields(); // 清除票券欄位
+          } else {
+            alert(`發生錯誤：${result.detail}`);
+          }
+        } catch (err) {
+          alert("發送失敗，請檢查網路或伺服器狀態");
+        }
+      });
+    </script>
+  </body>
+</html>
