@@ -142,10 +142,15 @@ def get_match(date: str, stadium: str, team1: str, team2: str):
 async def sell_tickets(
     game_id: int = Form(...),
     tickets: str = Form(...),  # JSON 格式：[{seat_number, seat_area, price, note}, {...}]
-    images: List[UploadFile] = File(...),
+    images: Optional[List[UploadFile]] = File(None),
+    # images: List[UploadFile] = File(...),
 	seller_id:int=2
 ):
     try:
+        # 如果前端完全沒傳 images，images 會是 None，我們把它變成空列表
+        if images is None:
+            images = []
+
         # 圖片驗證設定
         allowed_exts = {"jpg", "jpeg", "png"}
         max_size_mb = 5
@@ -154,7 +159,8 @@ async def sell_tickets(
         image_folder = "static/uploads"
         os.makedirs(image_folder, exist_ok=True)
         img_map = {}
-
+        
+        # 只有 images 裡真的有檔案才走這段
         for image in images:
             filename = image.filename
             ext = filename.split(".")[-1].lower()
@@ -184,7 +190,7 @@ async def sell_tickets(
             index = filename.split("_")[0]  # e.g., 0_img1.jpg -> "0"
             img_map.setdefault(index, []).append(f"/static/uploads/{uuid_name}")
 
-        # 回復游標位置，準備後續操作
+        # 回復游標位置，準備後續操作。解析 tickets JSON
         ticket_list = json.loads(tickets)
 
         insert_query = """
@@ -196,14 +202,14 @@ async def sell_tickets(
         with cnxpool.get_connection() as conn:
             with conn.cursor() as cursor:
                 for idx, ticket in enumerate(ticket_list):
-                    imgs = img_map.get(str(idx), [])
+                    imgs = img_map.get(str(idx), []) # 如果沒對應到圖片，就會是 []
                     cursor.execute(insert_query, (
                         seller_id,
 						game_id,
                         ticket["price"],
                         ticket["seat_number"],
                         ticket["seat_area"],
-                        json.dumps(imgs),
+                        json.dumps(imgs), # [] → 存成 "[]"
                         ticket.get("note", "")
                     ))
             conn.commit()

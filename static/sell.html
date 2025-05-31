@@ -102,9 +102,9 @@
     <header>
       <div class="navigation">
         <div class="navlist">
-          <div class="webtitle">Pitch-A-Seat</div>
+          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
           <div class="nav-item">
-            <div class="cart-link">購物車</div>
+            <!-- <div class="cart-link">購物車</div> -->
             <div class="memberpage-link">會員中心</div>
           </div>
         </div>
@@ -218,8 +218,9 @@
               <textarea name="note_${index}" rows="2"></textarea>
             </div>
             <div class="form-group">
-              <label>上傳票券照片</label>
-              <input type="file" name="image_${index}" multiple required />
+              <label>上傳票券照片(暫時非必選 for demo)</label>
+              <!-- 把 required 拿掉 -->
+              <input type="file" name="image_${index}" multiple />
             </div>
           </div>
         `;
@@ -319,36 +320,62 @@
           const price = document.querySelector(`[name=price_${i}]`).value;
           const note = document.querySelector(`[name=note_${i}]`).value;
 
-          // 取得圖片
+          // 取得圖片 (暫時非必選 for demo)
           const fileInput = document.querySelector(`[name=image_${i}]`);
           const files = fileInput.files;
 
-          // 驗證是否有圖片
-          if (files.length === 0) {
-            alert(`第 ${i + 1} 張票未上傳任何圖片`);
-            return;
+          // 暫時for demo: 不再強制檢查 files.length === 0**，如果沒選檔就跳過
+          if (files.length > 0) {
+            for (const file of files) {
+              const ext = file.name.split(".").pop().toLowerCase();
+              const sizeMB = file.size / 1024 / 1024;
+
+              // 驗證副檔名
+              if (!["jpg", "jpeg", "png"].includes(ext)) {
+                alert(`圖片格式錯誤：第 ${i + 1} 張票含有非 jpg/png 圖片`);
+                return;
+              }
+
+              // 驗證大小限制
+              if (sizeMB > 5) {
+                alert(`圖片過大：第 ${i + 1} 張票的某張圖片超過 5MB`);
+                return;
+              }
+
+              const filename = `${i}_${file.name}`;
+              const renamedFile = new File([file], filename, {
+                type: file.type,
+              });
+              formData.append("images", renamedFile);
+            }
           }
 
-          for (const file of files) {
-            const ext = file.name.split(".").pop().toLowerCase();
-            const sizeMB = file.size / 1024 / 1024;
+          // 驗證是否有圖片 (暫時註解，圖片非必選for demo)
+          // if (files.length === 0) {
+          //   alert(`第 ${i + 1} 張票未上傳任何圖片`);
+          //   return;
+          // }
 
-            // 驗證副檔名
-            if (!["jpg", "jpeg", "png"].includes(ext)) {
-              alert(`圖片格式錯誤：第 ${i + 1} 張票含有非 jpg/png 圖片`);
-              return;
-            }
+          // for (const file of files) {
+          //   const ext = file.name.split(".").pop().toLowerCase();
+          //   const sizeMB = file.size / 1024 / 1024;
 
-            // 驗證大小限制
-            if (sizeMB > 5) {
-              alert(`圖片過大：第 ${i + 1} 張票的某張圖片超過 5MB`);
-              return;
-            }
+          //   // 驗證副檔名
+          //   if (!["jpg", "jpeg", "png"].includes(ext)) {
+          //     alert(`圖片格式錯誤：第 ${i + 1} 張票含有非 jpg/png 圖片`);
+          //     return;
+          //   }
 
-            const filename = `${i}_${file.name}`;
-            const renamedFile = new File([file], filename, { type: file.type });
-            formData.append("images", renamedFile);
-          }
+          //   // 驗證大小限制
+          //   if (sizeMB > 5) {
+          //     alert(`圖片過大：第 ${i + 1} 張票的某張圖片超過 5MB`);
+          //     return;
+          //   }
+
+          //   const filename = `${i}_${file.name}`;
+          //   const renamedFile = new File([file], filename, { type: file.type });
+          //   formData.append("images", renamedFile);
+          // }
 
           tickets.push({
             seat_number: seatNumber,
@@ -379,6 +406,15 @@
           alert("發送失敗，請檢查網路或伺服器狀態");
         }
       });
+
+      // 點擊導頁至會員中心
+      document
+        .querySelector(".memberpage-link")
+        .addEventListener("click", () => {
+          fetch("/membership", { method: "GET" }).then((res) => {
+            window.location.href = res.url;
+          });
+        });
     </script>
   </body>
 </html>
