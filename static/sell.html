@@ -190,9 +190,52 @@
     </form>
 
     <script>
+      // -------------------
+      // 一、先從 URLSearchParams 讀取參數，若有值就填入對應的欄位
+      // -------------------
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // 如果 URL 裡帶了 game_id（也就代表使用者是從首頁選好場次跳過來），下面這幾行就自動填入
+      const dateParam = urlParams.get("date"); // e.g. "2025-06-15"
+      const timeParam = urlParams.get("time"); // e.g. "18:35"
+      const stadiumParam = urlParams.get("stadium"); // e.g. "台北大巨蛋"
+      const teamHomeParam = urlParams.get("team_home"); // e.g. "中信兄弟"
+      const teamAwayParam = urlParams.get("team_away"); // e.g. "富邦悍將"
+      const gameNumParam = urlParams.get("game_number"); // e.g. "03"
+      const gameIdParam = urlParams.get("game_id"); // e.g. "3"
+
+      // 如果 URL 裡有這些，就把它塞進去
+      if (dateParam) {
+        document.getElementById("date").value = dateParam;
+        // 若要避免使用者再改，可以加上：document.getElementById("date").disabled = true;
+      }
+      if (timeParam) {
+        document.getElementById("time").value = timeParam;
+        // document.getElementById("time").disabled = true;
+      }
+      if (stadiumParam) {
+        document.getElementById("venue").value = stadiumParam;
+        // document.getElementById("venue").disabled = true;
+      }
+      if (teamHomeParam) {
+        document.getElementById("team1").value = teamHomeParam;
+        // document.getElementById("team1").disabled = true;
+      }
+      if (teamAwayParam) {
+        document.getElementById("team2").value = teamAwayParam;
+        // document.getElementById("team2").disabled = true;
+      }
+      if (gameNumParam) {
+        document.getElementById("gameNumber").value = gameNumParam;
+      }
+      // game_idParam ：在後面送 API 時會用到
+
+      // -------------------
+      // 二、動態產生「座位區塊」
+      // -------------------
       const quantityInput = document.getElementById("quantity");
       const container = document.getElementById("ticketContainer");
-      const sellForm = document.getElementById("sellForm");
+      // const sellForm = document.getElementById("sellForm");
 
       function createTicketFields(index) {
         return `
@@ -237,79 +280,29 @@
       quantityInput.addEventListener("change", updateTicketFields);
       window.addEventListener("load", updateTicketFields);
 
-      async function fetchGameNumber() {
-        const date = document.getElementById("date").value;
-        const time = document.getElementById("time").value;
-        const venue = document.getElementById("venue").value;
-        const team1 = document.getElementById("team1").value;
-        const team2 = document.getElementById("team2").value;
-
-        if (!date || !venue || !team1 || !team2 || team1 === team2) return;
-
-        try {
-          const res = await fetch(
-            `/api/match?date=${date}&stadium=${venue}&team1=${team1}&team2=${team2}`
-          );
-          if (!res.ok) {
-            document.getElementById("gameNumber").value = "查無場次";
-            return;
-          }
-          const data = await res.json();
-          document.getElementById("gameNumber").value = data.game_number;
-        } catch {
-          document.getElementById("gameNumber").value = "查詢錯誤";
-        }
-      }
-
-      document
-        .getElementById("date")
-        .addEventListener("change", fetchGameNumber);
-      document
-        .getElementById("venue")
-        .addEventListener("change", fetchGameNumber);
-      document
-        .getElementById("team1")
-        .addEventListener("change", fetchGameNumber);
-      document
-        .getElementById("team2")
-        .addEventListener("change", fetchGameNumber);
-
+      // -------------------
+      // 三、送表單時的邏輯，要把 game_idParam 也一起帶去
+      // -------------------
+      const sellForm = document.getElementById("sellForm");
       sellForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const quantity = parseInt(document.getElementById("quantity").value);
+        // 先檢查：若 URL 沒帶 game_id，或是 gameNumber 欄位空的，就提醒使用者先選好場次
         const gameNumber = document.getElementById("gameNumber").value;
-
-        if (
-          !gameNumber ||
-          gameNumber === "查無場次" ||
-          gameNumber === "查詢錯誤"
-        ) {
-          alert("請先選取正確場次");
+        if (!gameIdParam || !gameNumber) {
+          alert("請先從首頁選取正確的場次");
           return;
         }
 
-        // 查 game_id
-        const date = document.getElementById("date").value;
-        const stadium = document.getElementById("venue").value;
-        const team1 = document.getElementById("team1").value;
-        const team2 = document.getElementById("team2").value;
-
-        let gameId;
-        try {
-          const res = await fetch(
-            `/api/match?date=${date}&stadium=${stadium}&team1=${team1}&team2=${team2}`
-          );
-          const data = await res.json();
-          gameId = data.game_id;
-        } catch {
-          alert("查詢比賽編號失敗");
-          return;
-        }
+        // 先把 quantity、game_id、tickets array 組好，再送 formData 給後端
+        const quantity = parseInt(document.getElementById("quantity").value);
 
         const formData = new FormData();
-        const tickets = [];
+        // 把 game_id 直接塞進去
+        formData.append("game_id", gameIdParam);
 
+        // 準備 tickets 的 JSON
+        const tickets = [];
         for (let i = 0; i < quantity; i++) {
           const seatNumber = document.querySelector(
             `[name=seat_number_${i}]`
@@ -320,28 +313,21 @@
           const price = document.querySelector(`[name=price_${i}]`).value;
           const note = document.querySelector(`[name=note_${i}]`).value;
 
-          // 取得圖片 (暫時非必選 for demo)
+          // 處理圖片
           const fileInput = document.querySelector(`[name=image_${i}]`);
           const files = fileInput.files;
-
-          // 暫時for demo: 不再強制檢查 files.length === 0**，如果沒選檔就跳過
           if (files.length > 0) {
             for (const file of files) {
               const ext = file.name.split(".").pop().toLowerCase();
               const sizeMB = file.size / 1024 / 1024;
-
-              // 驗證副檔名
               if (!["jpg", "jpeg", "png"].includes(ext)) {
                 alert(`圖片格式錯誤：第 ${i + 1} 張票含有非 jpg/png 圖片`);
                 return;
               }
-
-              // 驗證大小限制
               if (sizeMB > 5) {
                 alert(`圖片過大：第 ${i + 1} 張票的某張圖片超過 5MB`);
                 return;
               }
-
               const filename = `${i}_${file.name}`;
               const renamedFile = new File([file], filename, {
                 type: file.type,
@@ -349,33 +335,6 @@
               formData.append("images", renamedFile);
             }
           }
-
-          // 驗證是否有圖片 (暫時註解，圖片非必選for demo)
-          // if (files.length === 0) {
-          //   alert(`第 ${i + 1} 張票未上傳任何圖片`);
-          //   return;
-          // }
-
-          // for (const file of files) {
-          //   const ext = file.name.split(".").pop().toLowerCase();
-          //   const sizeMB = file.size / 1024 / 1024;
-
-          //   // 驗證副檔名
-          //   if (!["jpg", "jpeg", "png"].includes(ext)) {
-          //     alert(`圖片格式錯誤：第 ${i + 1} 張票含有非 jpg/png 圖片`);
-          //     return;
-          //   }
-
-          //   // 驗證大小限制
-          //   if (sizeMB > 5) {
-          //     alert(`圖片過大：第 ${i + 1} 張票的某張圖片超過 5MB`);
-          //     return;
-          //   }
-
-          //   const filename = `${i}_${file.name}`;
-          //   const renamedFile = new File([file], filename, { type: file.type });
-          //   formData.append("images", renamedFile);
-          // }
 
           tickets.push({
             seat_number: seatNumber,
@@ -385,7 +344,6 @@
           });
         }
 
-        formData.append("game_id", gameId);
         formData.append("tickets", JSON.stringify(tickets));
 
         try {
@@ -393,12 +351,12 @@
             method: "POST",
             body: formData,
           });
-
           const result = await res.json();
           if (res.ok) {
             alert(`成功送出 ${result.count} 張票！`);
             sellForm.reset();
-            updateTicketFields(); // 清除票券欄位
+            updateTicketFields();
+            window.location.href = "/";
           } else {
             alert(`發生錯誤：${result.detail}`);
           }
@@ -415,6 +373,70 @@
             window.location.href = res.url;
           });
         });
+
+      // 如果使用者手動改日期、球場、隊伍，仍可用 fetchGameNumber 自動從後端拿官方場次編號
+      async function fetchGameNumber() {
+        const date = document.getElementById("date").value;
+        const time = document.getElementById("time").value;
+        const venue = document.getElementById("venue").value;
+        const team1 = document.getElementById("team1").value;
+        const team2 = document.getElementById("team2").value;
+        if (!date || !venue || !team1 || !team2 || team1 === team2) return;
+
+        try {
+          const res = await fetch(
+            `/api/match?date=${date}&stadium=${venue}&team1=${team1}&team2=${team2}`
+          );
+          if (!res.ok) {
+            document.getElementById("gameNumber").value = "查無場次";
+            return;
+          }
+          const data = await res.json();
+          document.getElementById("gameNumber").value = data.game_number;
+        } catch {
+          document.getElementById("gameNumber").value = "查詢錯誤";
+        }
+      }
+      // 只有在使用者改變某些欄位時，才重新去撈 match API
+      document
+        .getElementById("date")
+        .addEventListener("change", fetchGameNumber);
+      document
+        .getElementById("venue")
+        .addEventListener("change", fetchGameNumber);
+      document
+        .getElementById("team1")
+        .addEventListener("change", fetchGameNumber);
+      document
+        .getElementById("team2")
+        .addEventListener("change", fetchGameNumber);
+
+      // 驗證是否有圖片 (暫時註解，圖片非必選for demo)
+      // if (files.length === 0) {
+      //   alert(`第 ${i + 1} 張票未上傳任何圖片`);
+      //   return;
+      // }
+
+      // for (const file of files) {
+      //   const ext = file.name.split(".").pop().toLowerCase();
+      //   const sizeMB = file.size / 1024 / 1024;
+
+      //   // 驗證副檔名
+      //   if (!["jpg", "jpeg", "png"].includes(ext)) {
+      //     alert(`圖片格式錯誤：第 ${i + 1} 張票含有非 jpg/png 圖片`);
+      //     return;
+      //   }
+
+      //   // 驗證大小限制
+      //   if (sizeMB > 5) {
+      //     alert(`圖片過大：第 ${i + 1} 張票的某張圖片超過 5MB`);
+      //     return;
+      //   }
+
+      //   const filename = `${i}_${file.name}`;
+      //   const renamedFile = new File([file], filename, { type: file.type });
+      //   formData.append("images", renamedFile);
+      // }
     </script>
   </body>
 </html>
