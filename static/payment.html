@@ -1,0 +1,321 @@
+<!-- static/payment.html -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>付款 | Pitch-A-Seat</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- 1. 載入 TapPay SDK v5.14.0 -->
+    <script src="https://js.tappaysdk.com/sdk/tpdirect/v5.14.0"></script>
+
+    <style>
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 40px 20px;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        text-align: center;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 6px;
+      }
+      /* TapPay Fields container 樣式 */
+      #card-number,
+      #card-expiration-date,
+      #card-ccv {
+        height: 40px;
+        width: 100%;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin: 5px 0;
+        box-sizing: border-box;
+        padding: 5px;
+      }
+      /* 當 TapPay Fields focus 時，會自動加上 .tappay-field-focus，加強框線 */
+      .tappay-field-focus {
+        border-color: #66afe9 !important;
+        outline: 0;
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+          0 0 8px rgba(102, 175, 233, 0.6);
+      }
+      .error-message {
+        color: red;
+        margin-top: 8px;
+      }
+      .btn-submit {
+        width: 100%;
+        padding: 10px;
+        background-color: #28a745;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .btn-submit:disabled {
+        background-color: #aaa;
+        cursor: not-allowed;
+      }
+      .info-text {
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h2>信用卡付款</h2>
+      <p class="info-text">
+        請輸入您的信用卡資訊（Sandbox 測試卡號，例如：4242 42424242 4242）。
+      </p>
+
+      <!-- 2. 放置 TapPay Card UI 的容器 -->
+      <div class="form-group">
+        <label for="card-number">卡號</label>
+        <div id="card-number"></div>
+      </div>
+      <div class="form-group">
+        <label for="card-expiration-date">到期日 (MM/YY)</label>
+        <div id="card-expiration-date"></div>
+      </div>
+      <div class="form-group">
+        <label for="card-ccv">安全碼 (CCV)</label>
+        <div id="card-ccv"></div>
+      </div>
+
+      <p class="error-message" id="tp-error"></p>
+
+      <!-- 3. 顯示訂單金額與按鈕 -->
+      <div class="form-group">
+        <label>訂單金額（NT$）</label>
+        <p id="order-amount">載入中...</p>
+      </div>
+
+      <button id="btn-pay" class="btn-submit" disabled>確認付款</button>
+    </div>
+
+    <script>
+      // -------------------------------------------
+      // 1. 先解析 URL query string，拿到 order_id 與 member_id
+      // -------------------------------------------
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get("order_id");
+      const memberId = urlParams.get("member_id");
+
+      if (!orderId || !memberId) {
+        alert("訂單資訊不完整，請返回訂單頁重新操作。");
+        location.href = "/membership";
+      }
+
+      // -------------------------------------------
+      // 2. 等到 DOMContentLoaded 再初始化 TapPay SDK、掛載卡片 UI、讀金額、綁定按鈕事件
+      // -------------------------------------------
+      document.addEventListener("DOMContentLoaded", function () {
+        // 2.1. 確認 TPDirect 物件已被載入
+        console.log("TPDirect 物件：", typeof TPDirect, TPDirect);
+        if (typeof TPDirect === "undefined") {
+          document.getElementById("tp-error").innerText =
+            "TapPay SDK 載入失敗，請檢查網路或 CDN 連線。";
+          return;
+        }
+
+        // 2.2. 初始化 TapPay
+        const tappay_app_id = "159952"; // Sandbox App ID
+        const tappay_app_key =
+          "app_5iVKPy5nuHAEKLp1kBaGyzR3mtpHAfUjnoJAslofmdov90OltX0v0oLSwTKU"; // Sandbox App Key
+        const tappay_env = "sandbox"; // sandbox環境
+
+        TPDirect.setupSDK(tappay_app_id, tappay_app_key, tappay_env);
+        console.log("TPDirect.setupSDK() 已執行");
+
+        // 2.3. 設定要掛載的 TapPay fields
+        TPDirect.card.setup({
+          fields: {
+            number: {
+              element: "#card-number",
+              placeholder: "**** **** **** ****",
+            },
+            expirationDate: {
+              element: "#card-expiration-date",
+              placeholder: "MM / YY",
+            },
+            ccv: {
+              element: "#card-ccv",
+              placeholder: "CCV",
+            },
+          },
+          styles: {
+            input: {
+              color: "#333",
+              "font-size": "16px",
+            },
+            ":focus": {
+              color: "black",
+            },
+            ".valid": {
+              color: "green",
+            },
+            ".invalid": {
+              color: "red",
+            },
+            "@media screen and (max-width: 400px)": {
+              input: {
+                color: "orange",
+              },
+            },
+          },
+          isMaskCreditCardNumber: true,
+          maskCreditCardNumberRange: {
+            beginIndex: 6,
+            endIndex: 11,
+          },
+        });
+        console.log("TPDirect.card.setup() 已執行");
+
+        // 2.4. 監聽 TapPay card 欄位狀態變化，若所有欄位都正確可以 getPrime 則啟用按鈕
+        TPDirect.card.onUpdate(function (update) {
+          // update.canGetPrime === true 代表所有欄位格式都正確
+          if (update.canGetPrime) {
+            document.getElementById("btn-pay").removeAttribute("disabled");
+          } else {
+            document.getElementById("btn-pay").setAttribute("disabled", true);
+          }
+        });
+
+        // 2.5. 讀取訂單金額
+        fetchOrderAmount();
+
+        // 2.6. 綁定「確認付款」按鈕事件
+        document
+          .getElementById("btn-pay")
+          .addEventListener("click", async function (e) {
+            e.preventDefault();
+            document.getElementById("tp-error").innerText = "";
+
+            // 先確認 TapPay 欄位是否都可以 getPrime
+            const tappayStatus = TPDirect.card.getTappayFieldsStatus();
+            if (tappayStatus.canGetPrime === false) {
+              document.getElementById("tp-error").innerText =
+                "信用卡輸入欄位尚未填寫完整或格式有誤";
+              return;
+            }
+
+            // 拿 prime
+            TPDirect.card.getPrime(async function (result) {
+              console.log("getPrime 回傳結果：", result);
+              if (result.status !== 0) {
+                document.getElementById("tp-error").innerText =
+                  "無法取得 Prime，請檢查卡號資訊後再試";
+                return;
+              }
+              const prime = result.card.prime;
+              console.log("取得 prime：", prime);
+
+              // 3. 將 prime 與 order_id、member_id 傳給後端
+              try {
+                const payBtn = document.getElementById("btn-pay");
+                payBtn.setAttribute("disabled", true);
+                payBtn.innerText = "付款中…";
+
+                const res = await fetch("/api/tappay_pay", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    prime: prime,
+                    order_id: parseInt(orderId),
+                    buyer_id: parseInt(memberId),
+                  }),
+                });
+
+                console.log(
+                  "POST /api/tappay_pay 回傳 HTTP 狀態：",
+                  res.status
+                );
+                const data = await res.json();
+                console.log("POST /api/tappay_pay 回傳 JSON：", data);
+
+                if (!res.ok) {
+                  throw new Error(data.detail || "付款過程失敗");
+                }
+                if (data.status === "success") {
+                  alert("付款成功！即將返回會員中心");
+                  window.location.href = "/membership";
+                } else {
+                  alert("付款失敗：" + (data.message || "請稍後再試"));
+                  payBtn.removeAttribute("disabled");
+                  payBtn.innerText = "確認付款";
+                }
+              } catch (err) {
+                console.error("付款 API 錯誤：", err);
+                document.getElementById("tp-error").innerText =
+                  err.message || "付款發生錯誤";
+                const payBtn = document.getElementById("btn-pay");
+                payBtn.removeAttribute("disabled");
+                payBtn.innerText = "確認付款";
+              }
+            });
+          });
+      });
+
+      // -------------------------------------------
+      // 3. 取得訂單金額，並顯示到畫面
+      // -------------------------------------------
+      async function fetchOrderAmount() {
+        try {
+          const res = await fetch(`/api/buyerOrders?member_id=${memberId}`);
+          console.log("fetchOrderAmount() HTTP 狀態：", res.status);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const orders = await res.json();
+          console.log("fetchOrderAmount() 回傳資料：", orders);
+
+          // 找到特定 order_id
+          const order = orders.find((o) => o.order_id == orderId);
+          console.log("fetchOrderAmount() 找到的訂單：", order);
+
+          if (!order) {
+            document.getElementById("order-amount").innerText =
+              "找不到訂單，請返回重新操作";
+            document.getElementById("btn-pay").setAttribute("disabled", true);
+            return;
+          }
+          document.getElementById("order-amount").innerText = order.price;
+          // 如果卡片欄位已經可以 getPrime，就啟用按鈕
+          const tappayStatus = TPDirect.card.getTappayFieldsStatus();
+          if (tappayStatus.canGetPrime) {
+            document.getElementById("btn-pay").removeAttribute("disabled");
+          } else {
+            document.getElementById("btn-pay").setAttribute("disabled", true);
+          }
+        } catch (err) {
+          console.error("fetchOrderAmount() 錯誤：", err);
+          document.getElementById("order-amount").innerText =
+            "取得訂單金額失敗，請稍後再試";
+        }
+      }
+    </script>
+  </body>
+</html>

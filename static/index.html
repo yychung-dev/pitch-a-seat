@@ -117,6 +117,13 @@
         border-radius: 4px;
         margin-top: 3px;
         line-height: 1.2;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .event.selected {
+        background: #ffc107; /* selected時呈現深黃色 */
+        color: #000;
       }
 
       /* 按鈕區 */
@@ -151,7 +158,7 @@
         <div class="navlist">
           <div class="webtitle">Pitch-A-Seat</div>
           <div class="nav-item">
-            <div class="cart-link">購物車</div>
+            <!-- <div class="cart-link">購物車</div> -->
             <div class="memberpage-link">會員中心</div>
           </div>
         </div>
@@ -184,6 +191,9 @@
 
       const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
 
+      // 存放「目前使用者在首頁選到哪一筆 game」
+      let selectedGame = null;
+
       function renderCalendar(year, month) {
         calendar.innerHTML = "";
 
@@ -193,6 +203,7 @@
 
         monthLabel.textContent = `${year}年${month}月`;
 
+        // 先渲染「星期」列
         weekdays.forEach((day) => {
           const w = document.createElement("div");
           w.className = "weekday";
@@ -200,30 +211,34 @@
           calendar.appendChild(w);
         });
 
+        // 補空格
         for (let i = 0; i < startDay; i++) {
           const blank = document.createElement("div");
           blank.className = "day";
           calendar.appendChild(blank);
         }
 
+        // 撈當月所有賽程
         fetch(`/api/schedule?year=${year}&month=${month}`)
           .then((res) => res.json())
           .then((games) => {
+            // 先把所有場次按日期分組
             const gameMap = {};
             games.forEach((game) => {
-              const day = new Date(game.game_date).getDate();
-              if (!gameMap[day]) gameMap[day] = [];
-              gameMap[day].push(game);
+              const dayNum = new Date(game.game_date).getDate();
+              if (!gameMap[dayNum]) gameMap[dayNum] = [];
+              gameMap[dayNum].push(game);
             });
 
+            // 將每一天（1～daysInMonth）畫出來
             for (let i = 1; i <= daysInMonth; i++) {
               const dayBox = document.createElement("div");
               dayBox.className = "day";
 
-              const date = document.createElement("div");
-              date.className = "date-num";
-              date.textContent = i;
-              dayBox.appendChild(date);
+              const dateLabel = document.createElement("div");
+              dateLabel.className = "date-num";
+              dateLabel.textContent = i;
+              dayBox.appendChild(dateLabel);
 
               if (gameMap[i]) {
                 gameMap[i].forEach((g) => {
@@ -234,6 +249,37 @@
                   <div>${g.team_away} vs ${g.team_home}</div>
                   <div>${g.start_time.slice(0, 5)}</div>
                 `;
+                  // 把這筆賽程的重要資訊都綁到 DOM element 的 data-attributes：
+                  e.dataset.gameId = g.id; // 後端 SELECT id AS id
+                  e.dataset.date = g.game_date; // yyyy-mm-dd
+                  e.dataset.time = g.start_time; // HH:MM
+                  e.dataset.stadium = g.stadium;
+                  e.dataset.teamHome = g.team_home;
+                  e.dataset.teamAway = g.team_away;
+                  e.dataset.gameNumber = g.game_number;
+
+                  // 點擊某個 “event” 卡片時：先把之前的 selected 樣式移掉，再把新卡片標記為 selected，最後把該筆資料存進 selectedGame
+                  e.addEventListener("click", () => {
+                    // 1. 移除先前被選到的所有 .event.selected
+                    document
+                      .querySelectorAll(".event.selected")
+                      .forEach((old) => {
+                        old.classList.remove("selected");
+                      });
+                    // 2. 將自己標成 selected
+                    e.classList.add("selected");
+
+                    // 3. 把該筆資料存在 selectedGame
+                    selectedGame = {
+                      game_id: e.dataset.gameId,
+                      date: e.dataset.date,
+                      time: e.dataset.time,
+                      stadium: e.dataset.stadium,
+                      team_home: e.dataset.teamHome,
+                      team_away: e.dataset.teamAway,
+                      game_number: e.dataset.gameNumber,
+                    };
+                  });
                   dayBox.appendChild(e);
                 });
               }
@@ -267,18 +313,34 @@
         location.reload();
       });
 
+      // 「我要賣票」按鈕：若沒選到 selectedGame，就跳 alert；有選到就做成 query string 並跳轉
       document.querySelector(".btn-sell").addEventListener("click", () => {
-        fetch("/sell", { method: "GET" }).then((res) => {
-          window.location.href = res.url;
-        });
+        if (!selectedGame) {
+          alert("請先在月曆上點選一筆您要賣票的賽程");
+          return;
+        }
+        // 把 selectedGame 變成 query string
+        const params = new URLSearchParams({
+          game_id: selectedGame.game_id,
+          date: selectedGame.date,
+          time: selectedGame.time,
+          stadium: selectedGame.stadium,
+          team_home: selectedGame.team_home,
+          team_away: selectedGame.team_away,
+          game_number: selectedGame.game_number,
+        }).toString();
+
+        window.location.href = `/sell?${params}`;
       });
 
+      // 「我要買票」按鈕：導到 /events
       document.querySelector(".btn-buy").addEventListener("click", () => {
         fetch("/events", { method: "GET" }).then((res) => {
           window.location.href = res.url;
         });
       });
 
+      // 點擊導頁至會員中心
       document
         .querySelector(".memberpage-link")
         .addEventListener("click", () => {

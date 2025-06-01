@@ -14,10 +14,14 @@ from dbconf import cnxpool
 import mysql.connector
 from PIL import Image
 
+import httpx
 
 # ===== 基本設定 =====
 load_dotenv()
 app = FastAPI()
+
+
+
 
 # Static templates (not actually used in API, but kept if needed)
 templates = Jinja2Templates(directory="static")
@@ -43,6 +47,9 @@ async def events():
 async def browse_page():
     return FileResponse("./static/browse.html", media_type="text/html")
 
+@app.get("/payment", include_in_schema=False)
+async def payment_page():
+    return FileResponse("./static/payment.html", media_type="text/html")
 
 # ===== 環境變數檢查 =====
 required_vars = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_NAME"]
@@ -54,10 +61,18 @@ if missing:
     print("請確認 .env 設定正確")
     sys.exit(1)
 
+# ===== TapPay 環境變數 =====
+TAPPAY_PARTNER_KEY = os.getenv("TAPPAY_PARTNER_KEY")
+TAPPAY_MERCHANT_ID = os.getenv("TAPPAY_MERCHANT_ID")
+TAPPAY_ENV = os.getenv("TAPPAY_ENV", "sandbox")  
+if not TAPPAY_PARTNER_KEY or not TAPPAY_MERCHANT_ID:
+    print("缺少 TapPay 環境變數，請確認 .env 是否設定 TAPPAY_PARTNER_KEY / TAPPAY_MERCHANT_ID")
+    sys.exit(1)
+
 # ===== CORS 設定 =====
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 上線時，要限制來源
+    allow_origins=["*"],  # 上線時，改成限定網域
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,6 +80,7 @@ app.add_middleware(
 
 # ===== Pydantic Model =====
 class Game(BaseModel):
+    id: int
     game_date: date
     stadium: str
     game_number: str
@@ -92,7 +108,7 @@ class TicketOut(BaseModel):
 def get_schedule(year: int, month: int):
     try:
         query = """
-            SELECT game_date, stadium, game_number, team_home, team_away, start_time
+            SELECT id, game_date, stadium, game_number, team_home, team_away, start_time
             FROM games
             WHERE YEAR(game_date) = %s AND MONTH(game_date) = %s
             ORDER BY game_date, start_time
@@ -590,48 +606,197 @@ def get_notifications(member_id: int = 1):
         print("查詢通知錯誤:", e)
         raise HTTPException(status_code=500, detail="通知查詢失敗")
 
-
-# 買家付款：POST /api/pay_order
-@app.post("/api/pay_order")
-def pay_order(order_id: int = Body(..., embed=True), buyer_id: int = Body(..., embed=True)):
+# ===== TapPay 付款 API =====
+@app.post("/api/tappay_pay")
+async def tappay_pay(
+    prime: str = Body(...),
+    order_id: int = Body(...),
+    buyer_id: int = Body(...)
+):
+    # 1. STEP：先檢查訂單存在性、狀態是否符合「可付款」: 查詢訂單並確認可付款（用 JOIN 把 price 一併撈出來）
     try:
         with cnxpool.get_connection() as conn:
             with conn.cursor(dictionary=True) as cursor:
-                # 驗證訂單
-                cursor.execute("SELECT * FROM orders WHERE id=%s", (order_id,))
+                cursor.execute("""
+                    SELECT
+                      o.*,
+                      t.price
+                    FROM orders o
+                    JOIN tickets_for_sale t ON o.ticket_id = t.id
+                    WHERE o.id = %s
+                """, (order_id,))
                 order = cursor.fetchone()
                 if not order:
-                    raise HTTPException(404, "訂單不存在")
+                    raise HTTPException(status_code=404, detail="訂單不存在")
                 if order["buyer_id"] != buyer_id:
-                    raise HTTPException(403, "無權限操作此訂單")
+                    raise HTTPException(status_code=403, detail="無權限操作此訂單")
+                # 只有在「媒合成功」且「未付款」才能進行付款
                 if order["status"] != "媒合成功" or order["payment_status"] != "未付款":
-                    raise HTTPException(400, "目前狀態無法執行付款")
-
-                # 更新付款
-                now = datetime.now()
-                cursor.execute("""
-                    UPDATE orders
-                    SET payment_status='已付款', paid_at=%s
-                    WHERE id=%s
-                """, (now, order_id))
-                # 同步標綠票券已售出
-                cursor.execute("""
-                    UPDATE tickets_for_sale
-                    SET is_sold=TRUE
-                    WHERE id=%s
-                """, (order["ticket_id"],))
-                # 通知賣家
-                cursor.execute("""
-                    INSERT INTO notifications (member_id, message, url)
-                    VALUES (%s, %s, %s)
-                """, (order["seller_id"], f"訂單 #{order_id} 已付款，請出貨", "/membership"))
-            conn.commit()
-        return {"status":"success"}
+                    raise HTTPException(status_code=400, detail="目前訂單狀態無法執行付款")
+                # 取得訂單金額
+                amount = order["price"]
     except HTTPException:
         raise
     except Exception as e:
-        print("付款失敗：", e)
-        raise HTTPException(500, "付款失敗")
+        print("查詢訂單時錯誤：", e)
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤")
+
+    # 2. STEP：在 payments 表先插入一筆 UNPAID 紀錄
+    payment_id = None
+    try:
+        with cnxpool.get_connection() as conn:
+            with conn.cursor() as cursor:
+                insert_pay = """
+                    INSERT INTO payments
+                    (order_id, amount, tappay_status)
+                    VALUES (%s, %s, %s)
+                """
+                cursor.execute(insert_pay, (order_id, amount, "UNPAID"))
+                payment_id = cursor.lastrowid
+            conn.commit()
+    except Exception as e:
+        print("建立 payments 記錄錯誤：", e)
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤")
+
+    # 3. STEP：呼叫 TapPay Pay By Prime API
+    tappay_api_url = (
+        "https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime"
+        if TAPPAY_ENV == "sandbox"
+        else "https://prod.tappaysdk.com/tpc/payment/pay-by-prime"
+    )
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": TAPPAY_PARTNER_KEY,
+    }
+
+    body = {
+        "prime": prime,
+        "partner_key": TAPPAY_PARTNER_KEY,
+        "merchant_id": TAPPAY_MERCHANT_ID,
+        "details": f"Order #{order_id} 支付",  # 自定義交易細節
+        "amount": amount,
+        "currency": "TWD",   
+        "order_number": str(order_id),  # TapPay 在回傳物件中附上訂單編號
+        # cardholder 資訊（可帶可不帶，但 TapPay 建議帶上）
+        "cardholder": {
+            "phone_number": "",      # 若前端有帶 cardholder 資訊，可補上
+            "name": "",
+            "email": "",
+            "zip_code": "",
+            "address": "",
+            "national_id": "",
+        },
+        "remember": False  # 是否要記錄付款卡片，不需要就設成 False
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(tappay_api_url, headers=headers, json=body)
+            tappay_result = resp.json()
+    except Exception as e:
+        print("呼叫 TapPay API 失敗：", e)
+        # 若 TapPay API 本身沒回來，也要更新 payments 為 FAILED
+        try:
+            with cnxpool.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE payments SET tappay_status=%s, tappay_status_message=%s WHERE id=%s",
+                        ("FAILED", "TapPay API 呼叫失敗", payment_id),
+                    )
+                conn.commit()
+        except Exception as ex:
+            print("更新 payments 失敗：", ex)
+        raise HTTPException(status_code=500, detail="呼叫 TapPay 金流失敗")
+
+    # 4. STEP：根據 TapPay 回傳結果決定後續更新
+    #    TapPay 回傳 JSON
+    tappay_status = tappay_result.get("status")
+    tappay_msg = tappay_result.get("msg", "")
+    tappay_rec_trade_id = tappay_result.get("rec_trade_id", "")
+    tappay_bank_txn_id = tappay_result.get("bank_transaction_id", "")
+
+    if tappay_status == 0:
+        # 成功：更新 payments.status、orders.payment_status、orders.paid_at
+        try:
+            with cnxpool.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # 4.1 更新 payments
+                    cursor.execute(
+                        """
+                        UPDATE payments
+                        SET tappay_status=%s,
+                            payed_at=%s,
+                            tappay_transaction_id=%s,
+                            tappay_bank_transaction_id=%s,
+                            tappay_status_code=%s,
+                            tappay_status_message=%s
+                        WHERE id=%s
+                        """,
+                        (
+                            "PAID",
+                            datetime.now(),
+                            tappay_rec_trade_id,
+                            tappay_bank_txn_id,
+                            tappay_status,
+                            tappay_msg,
+                            payment_id,
+                        ),
+                    )
+                    # 4.2 更新 orders.payment_status, orders.paid_at
+                    cursor.execute(
+                        """
+                        UPDATE orders
+                        SET payment_status=%s,
+                            paid_at=%s
+                        WHERE id=%s
+                        """,
+                        ("已付款", datetime.now(), order_id),
+                    )
+                    # 4.2.1 通知賣家「訂單#X(編號) 已付款，請出貨」
+                    cursor.execute(
+                        """
+                        INSERT INTO notifications (member_id, message, url)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (
+                            order["seller_id"],
+                            f"訂單 #{order_id} 已付款，請出貨",
+                            "/membership"
+                        ),
+                    )
+
+                conn.commit()
+            return {"status": "success", "order_id": order_id}
+        except Exception as e:
+            print("更新付款結果到資料庫失敗：", e)
+            raise HTTPException(status_code=500, detail="更新付款結果失敗")
+    else:
+        # 失敗：更新 payments 為 FAILED，並將失敗原因寫入 tappay_status_message
+        try:
+            with cnxpool.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        UPDATE payments
+                        SET tappay_status=%s,
+                            tappay_status_code=%s,
+                            tappay_status_message=%s
+                        WHERE id=%s
+                        """,
+                        ("FAILED", tappay_status, tappay_msg, payment_id),
+                    )
+                conn.commit()
+        except Exception as e:
+            print("更新 payments 失敗：", e)
+        # 把錯誤訊息回前端，前端顯示「付款失敗：訊息」
+        return JSONResponse(
+            status_code=400,
+            content={"status": "failed", "message": f"TapPay 金流失敗：{tappay_msg}"},
+        )
+       
+# 移除：尚未串金流時模擬呼叫的買家付款api：POST /api/pay_order
+
 
 # 賣家出貨：POST /api/mark_shipped
 @app.post("/api/mark_shipped")
