@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>個人資料 | Pitch-A-Seat</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/x-icon" href="/static/image/favicon.png" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #f5f5f5;
+        padding-top: 60px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      /* 進度條樣式 */
+      #loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background-color: #8b1e3f;
+        z-index: 9999;
+        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      }
+      /* 導覽列 */
+      .navigation {
+        display: flex;
+        justify-content: center;
+        height: 80px;
+        padding: 10px 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #1f2a2a;
+        z-index: 100;
+      }
+      .navlist {
+        display: flex;
+        justify-content: space-between;
+        width: 1200px;
+        align-items: center;
+      }
+      .webtitle {
+        font-weight: 700;
+        font-size: 30px;
+        color: #fff;
+        cursor: pointer;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        position: relative;
+      }
+      .btn-link {
+        font-size: 16px;
+        color: #fff;
+        cursor: pointer;
+        background: none;
+        border: none;
+      }
+      .user-dropdown {
+        cursor: pointer;
+        user-select: none;
+        color: #fff;
+      }
+      .user-dropdown::after {
+        content: "▼";
+        font-size: 8px;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+      .dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        background: #0f1414;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        min-width: 150px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 200;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .dropdown-menu.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .dropdown-menu li {
+        list-style: none;
+        padding: 12px 15px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
+      }
+      .dropdown-menu li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+      @keyframes rainbowShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+      .notifications {
+        cursor: pointer;
+        position: relative;
+      }
+      .notifications img {
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+      }
+      .notifications .badge {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        background: #d32f2f;
+        color: #fff;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+      }
+      .notif-dropdown {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+        background: #0f1414;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        z-index: 150;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .notif-dropdown.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .notif-dropdown ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .notif-dropdown li {
+        padding: 12px 15px;
+        border-bottom: 1px solid #2d3737;
+        font-size: 14px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
+      }
+      .notif-dropdown li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+      /* 導覽列按鈕 */
+      .nav-buttons {
+        display: flex;
+        gap: 27px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .nav-action-btn {
+        background: #1f2a2a;
+        color: #fff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.8s;
+      }
+      .nav-action-btn:hover {
+        background: #e53935;
+      }
+      /* 個人資料樣式 */
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        flex: 1; /* 讓 container 佔據剩餘空間，推動 footer 到底部 */
+        width: 100%; /* 明確設置寬度，確保子元素正確繼承 */
+      }
+      .section-title {
+        margin-top: 30px;
+        font-size: 20px;
+        font-weight: bold;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 5px;
+      }
+      .profile-display {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin: 15px 0 30px;
+        padding: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        width: 100%; /* 確保佔滿父容器寬度 */
+      }
+      .profile-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .profile-label {
+        font-weight: bold;
+        width: 120px;
+      }
+      .profile-value {
+        flex: 1;
+      }
+      .btn-edit {
+        background-color: #ffc107;
+        color: #fff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        display: block;
+        margin-left: auto;
+      }
+      .btn-save {
+        background-color: #28a745;
+        color: #fff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+      .btn-cancel {
+        background-color: #dc3545;
+        color: #fff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      input,
+      select {
+        width: 100%;
+        max-width: 400px;
+        padding: 6px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+      .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .checkbox-group label {
+        display: flex;
+        align-items: center;
+        font-weight: normal;
+        margin-right: 15px;
+      }
+      .checkbox-group input {
+        margin-right: 5px;
+        width: auto;
+        max-width: none;
+      }
+      .button-group {
+        margin-top: 20px;
+      }
+      .error-msg {
+        color: red;
+        font-size: 14px;
+        margin-top: 5px;
+      }
+      /* 頁腳 */
+      #footer {
+        background: #0f1414;
+        padding: 20px 0;
+        text-align: center;
+        color: #f5ede4;
+        font-size: 14px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 進度條 -->
+    <div id="loading-bar" aria-hidden="true"></div>
+    <!-- 驗證 token -->
+    <script>
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        alert("請先登入");
+        window.location.href = "/";
+      }
+    </script>
+    <!-- 導覽列 -->
+    <header>
+      <div class="navigation">
+        <div class="navlist">
+          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+          <div class="nav-buttons">
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/sell')"
+            >
+              賣 票
+            </button>
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/buy')"
+            >
+              買 票
+            </button>
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/reservation')"
+            >
+              預 約
+            </button>
+          </div>
+          <div class="nav-item" id="navRight">
+            <div class="notifications" id="notifBell">
+              <img src="/static/image/bell.png" alt="通知鈴鐺" />
+              <span class="badge" id="notifCount"></span>
+              <div class="notif-dropdown" id="notifDropdown">
+                <ul id="notifList"></ul>
+              </div>
+            </div>
+            <div id="userArea"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- 個人資料區塊 -->
+    <div class="container">
+      <div class="section-title">個人資料</div>
+      <div class="profile-display" id="profileSection">
+        <div id="profileView">
+          <div class="profile-row">
+            <div class="profile-label">姓名：</div>
+            <div class="profile-value" id="viewName"></div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-label">電子郵件：</div>
+            <div class="profile-value" id="viewEmail"></div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-label">手機：</div>
+            <div class="profile-value" id="viewPhone"></div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-label">現居城市：</div>
+            <div class="profile-value" id="viewCity"></div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-label">喜愛球隊：</div>
+            <div class="profile-value" id="viewFavTeams"></div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-label">我的評分：</div>
+            <div class="profile-value" id="viewAvgRating"></div>
+          </div>
+          <button class="btn-edit" id="btnEditProfile">修改</button>
+        </div>
+        <div id="profileEdit" style="display: none">
+          <div class="error-msg" id="profileErrorMsg"></div>
+          <div class="form-group">
+            <label for="editName">姓名</label>
+            <input type="text" id="editName" required />
+          </div>
+          <div class="form-group">
+            <label for="editEmail">電子郵件</label>
+            <input type="email" id="editEmail" required />
+          </div>
+          <div class="form-group">
+            <label for="editPassword">新密碼 (若不修改可留空)</label>
+            <input type="password" id="editPassword" placeholder="至少6位" />
+          </div>
+          <div class="form-group">
+            <label for="editPhone">手機</label>
+            <input
+              type="tel"
+              id="editPhone"
+              placeholder="例如：0912345678"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="editCity">現居城市</label>
+            <select id="editCity">
+              <option value="">請選擇</option>
+              <option value="台北市">台北市</option>
+              <option value="新北市">新北市</option>
+              <option value="桃園市">桃園市</option>
+              <option value="台中市">台中市</option>
+              <option value="台南市">台南市</option>
+              <option value="高雄市">高雄市</option>
+              <option value="基隆市">基隆市</option>
+              <option value="新竹市">新竹市</option>
+              <option value="嘉義市">嘉義市</option>
+              <option value="新竹縣">新竹縣</option>
+              <option value="苗栗縣">苗栗縣</option>
+              <option value="彰化縣">彰化縣</option>
+              <option value="南投縣">南投縣</option>
+              <option value="雲林縣">雲林縣</option>
+              <option value="嘉義縣">嘉義縣</option>
+              <option value="屏東縣">屏東縣</option>
+              <option value="宜蘭縣">宜蘭縣</option>
+              <option value="花蓮縣">花蓮縣</option>
+              <option value="台東縣">台東縣</option>
+              <option value="澎湖縣">澎湖縣</option>
+              <option value="金門縣">金門縣</option>
+              <option value="連江縣">連江縣</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>喜愛球隊 (可複選)</label>
+            <div class="checkbox-group">
+              <label
+                ><input
+                  type="checkbox"
+                  name="editFavoriteTeams"
+                  value="中信兄弟"
+                />
+                中信兄弟</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="editFavoriteTeams"
+                  value="富邦悍將"
+                />
+                富邦悍將</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="editFavoriteTeams"
+                  value="樂天桃猿"
+                />
+                樂天桃猿</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="editFavoriteTeams"
+                  value="統一7-ELEVEn獅"
+                />
+                統一7-ELEVEn獅</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="editFavoriteTeams"
+                  value="味全龍"
+                />
+                味全龍</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  name="editFavoriteTeams"
+                  value="台鋼雄鷹"
+                />
+                台鋼雄鷹</label
+              >
+            </div>
+          </div>
+          <div class="button-group">
+            <button class="btn-save" id="btnSaveProfile">儲存</button>
+            <button class="btn-cancel" id="btnCancelEdit">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 頁腳 -->
+    <footer id="footer">
+      <div class="container">
+        <p>COPYRIGHT © 2025 Pitch-A-Seat</p>
+      </div>
+    </footer>
+    <script>
+      // 導覽列功能：通知鈴鐺與使用者下拉選單
+      async function fetchAuthStatus() {
+        const token = localStorage.getItem("access_token");
+        try {
+          const res = await fetch("/api/user/auth", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+          if (!res.ok) throw "";
+          const user = await res.json();
+          document.getElementById("navRight").innerHTML = `
+            <div class="notifications" id="notifBell">
+              <img src="/static/image/bell.png" alt="通知鈴鐺" />
+              <span class="badge" id="notifCount"></span>
+              <div class="notif-dropdown" id="notifDropdown">
+                <ul id="notifList"></ul>
+              </div>
+            </div>
+            <div id="userArea"></div>
+          `;
+          showUserDropdown(user);
+          loadNotifications();
+          document
+            .getElementById("notifBell")
+            .addEventListener("click", async (e) => {
+              e.stopPropagation();
+              const dd = document.getElementById("notifDropdown");
+              if (dd.classList.contains("show")) {
+                dd.classList.remove("show");
+              } else {
+                await fetch("/api/mark_notifications_read", {
+                  method: "POST",
+                  headers: {
+                    Authorization:
+                      "Bearer " + localStorage.getItem("access_token"),
+                  },
+                });
+                await loadNotifications();
+                dd.classList.add("show");
+              }
+              document.getElementById("dropdownMenu").classList.remove("show");
+            });
+        } catch {
+          localStorage.removeItem("access_token");
+          alert("登入已失效，請重新登入");
+          location.href = "/";
+        }
+      }
+      function showUserDropdown(user) {
+        document.getElementById("userArea").innerHTML = `
+          <div class="user-dropdown" id="userDropdown">
+            ${user.name}
+            <ul class="dropdown-menu" id="dropdownMenu">
+              <li id="gotoProfile">個人資料</li>
+              <li id="gotoSell">我的售票</li>
+              <li id="gotoBuy">我的購買</li>
+              <li id="gotoReservation">我的預約</li>
+              <li id="gotoLaunch">我的上架紀錄</li>
+              <li id="doLogout">登出</li>
+            </ul>
+          </div>`;
+        const dd = document.getElementById("userDropdown"),
+          menu = document.getElementById("dropdownMenu");
+        dd.addEventListener("click", (e) => {
+          menu.classList.toggle("show");
+          document.getElementById("notifDropdown").classList.remove("show");
+          e.stopPropagation();
+        });
+        document.addEventListener("click", (e) => {
+          if (!dd.contains(e.target)) menu.classList.remove("show");
+        });
+        document
+          .getElementById("gotoProfile")
+          .addEventListener("click", () => (location.href = "/member_profile"));
+        document
+          .getElementById("gotoSell")
+          .addEventListener("click", () => (location.href = "/member_sell"));
+        document
+          .getElementById("gotoBuy")
+          .addEventListener("click", () => (location.href = "/member_buy"));
+        document
+          .getElementById("gotoReservation")
+          .addEventListener(
+            "click",
+            () => (location.href = "/member_reservation")
+          );
+        document
+          .getElementById("gotoLaunch")
+          .addEventListener("click", () => (location.href = "/member_launch"));
+        document.getElementById("doLogout").addEventListener("click", () => {
+          localStorage.removeItem("access_token");
+          location.href = "/";
+        });
+      }
+      async function loadNotifications() {
+        const token = localStorage.getItem("access_token");
+        if (!token) return;
+        try {
+          const res = await fetch("/api/notifications", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (!res.ok) return;
+          const notes = await res.json();
+          const ul = document.getElementById("notifList");
+          ul.innerHTML = "";
+          let unread = 0;
+          notes.forEach((n) => {
+            const li = document.createElement("li");
+            li.textContent = n.message;
+            li.onclick = () => (location.href = n.url);
+            ul.appendChild(li);
+            if (!n.is_read) unread++;
+          });
+          document.getElementById("notifCount").textContent = unread;
+        } catch {}
+      }
+      document.addEventListener("click", () => {
+        const notifDropdown = document.getElementById("notifDropdown");
+        if (notifDropdown) notifDropdown.classList.remove("show");
+      });
+      // 賣票／買票／預約
+      function requireLogin(fn) {
+        if (!localStorage.getItem("access_token")) {
+          alert("您尚未登入，請先登入");
+          location.href = "/";
+          return;
+        }
+        fn();
+      }
+      // 個人資料功能
+      async function loadUserProfile() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          alert("請先登入");
+          window.location.href = "/";
+          return;
+        }
+        try {
+          const res = await fetch("/api/user/profile", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+          if (res.status === 401) {
+            localStorage.removeItem("access_token");
+            alert("身份驗證失敗，請重新登入");
+            window.location.href = "/";
+            return;
+          }
+          if (!res.ok) throw new Error("無法取得個人資料");
+          const data = await res.json();
+          document.getElementById("viewName").textContent = data.name;
+          document.getElementById("viewEmail").textContent = data.email;
+          document.getElementById("viewPhone").textContent = data.phone;
+          document.getElementById("viewCity").textContent = data.city || "-";
+          document.getElementById("viewFavTeams").textContent =
+            data.favorite_teams && data.favorite_teams.length > 0
+              ? data.favorite_teams.join("、")
+              : "--";
+          document.getElementById("viewAvgRating").textContent = data.avg_rating
+            ? data.avg_rating.toFixed(1)
+            : "--";
+          document.getElementById("editName").value = data.name;
+          document.getElementById("editEmail").value = data.email;
+          document.getElementById("editPhone").value = data.phone;
+          document.getElementById("editCity").value = data.city || "";
+          if (data.favorite_teams && data.favorite_teams.length > 0) {
+            data.favorite_teams.forEach((team) => {
+              const chk = document.querySelector(
+                `input[name="editFavoriteTeams"][value="${team}"]`
+              );
+              if (chk) chk.checked = true;
+            });
+          }
+        } catch (err) {
+          console.error(err);
+          alert("取得個人資料失敗，請重新登入");
+          localStorage.removeItem("access_token");
+          window.location.href = "/";
+        }
+      }
+      document
+        .getElementById("btnEditProfile")
+        .addEventListener("click", () => {
+          document.getElementById("profileView").style.display = "none";
+          document.getElementById("profileEdit").style.display = "block";
+        });
+      document.getElementById("btnCancelEdit").addEventListener("click", () => {
+        document.getElementById("profileEdit").style.display = "none";
+        document.getElementById("profileErrorMsg").textContent = "";
+        document.getElementById("profileView").style.display = "block";
+      });
+      document
+        .getElementById("btnSaveProfile")
+        .addEventListener("click", async () => {
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            alert("請先登入");
+            window.location.href = "/";
+            return;
+          }
+          const name = document.getElementById("editName").value.trim();
+          const email = document.getElementById("editEmail").value.trim();
+          const password = document.getElementById("editPassword").value;
+          const phone = document.getElementById("editPhone").value.trim();
+          const city = document.getElementById("editCity").value;
+          const favEls = document.querySelectorAll(
+            "input[name='editFavoriteTeams']:checked"
+          );
+          const favorite_teams = Array.from(favEls).map((el) => el.value);
+          if (!name) {
+            document.getElementById("profileErrorMsg").textContent =
+              "姓名不可為空";
+            return;
+          }
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            document.getElementById("profileErrorMsg").textContent =
+              "電子郵件格式錯誤";
+            return;
+          }
+          if (!/^09\d{8}$/.test(phone)) {
+            document.getElementById("profileErrorMsg").textContent =
+              "手機格式錯誤";
+            return;
+          }
+          const payload = {
+            name,
+            email,
+            phone,
+            city: city || null,
+            favorite_teams,
+          };
+          if (password) {
+            if (password.length < 6) {
+              document.getElementById("profileErrorMsg").textContent =
+                "新密碼至少6位";
+              return;
+            }
+            payload.password = password;
+          }
+          try {
+            const res = await fetch("/api/user/profile", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (res.status === 401) {
+              localStorage.removeItem("access_token");
+              alert("身份驗證失敗，請重新登入");
+              window.location.href = "/";
+              return;
+            }
+            if (!res.ok) {
+              document.getElementById("profileErrorMsg").textContent =
+                data.detail || "更新失敗";
+            } else {
+              document.getElementById("profileEdit").style.display = "none";
+              document.getElementById("profileView").style.display = "block";
+              document.getElementById("profileErrorMsg").textContent = "";
+              await loadUserProfile();
+            }
+          } catch (err) {
+            console.error(err);
+            document.getElementById("profileErrorMsg").textContent =
+              "伺服器錯誤，請稍後再試";
+          }
+        });
+      // 進度條動畫
+      function initLoadingBar() {
+        const loadingBar = document.getElementById("loading-bar");
+        let progress = 0;
+        const interval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            loadingBar.style.width = `${progress}%`;
+          }
+        }, 200);
+        window.onload = () => {
+          clearInterval(interval);
+          progress = 100;
+          loadingBar.style.width = "100%";
+          setTimeout(() => {
+            loadingBar.style.opacity = "0";
+            setTimeout(() => {
+              loadingBar.style.display = "none";
+            }, 300);
+          }, 500);
+        };
+      }
+      // 初始設定
+      document.addEventListener("DOMContentLoaded", async () => {
+        await loadUserProfile();
+        await fetchAuthStatus();
+        initLoadingBar();
+      });
+    </script>
+  </body>
+</html>

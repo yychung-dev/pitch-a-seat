@@ -8,349 +8,1283 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="icon" type="image/x-icon" href="/static/image/favicon.png" />
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       body {
         font-family: "Noto Sans TC", sans-serif;
-        background: #f8f9fa;
+        background: #f5f6f5;
         padding-top: 60px;
+        color: #ffffff;
       }
-
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      /* 進度條樣式 */
+      #loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background-color: #8b1e3f;
+        z-index: 9999;
+        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      }
       /* 導覽列 */
       .navigation {
         display: flex;
         justify-content: center;
-        height: 35px;
+        height: 80px;
         padding: 10px 0;
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
+        background: #1f2a2a;
         z-index: 100;
-        background-color: black;
-        border-bottom: 1px solid #e0e0e0;
       }
-
       .navlist {
         display: flex;
         justify-content: space-between;
         width: 1200px;
-        height: 34px;
+        align-items: center;
       }
-
       .webtitle {
-        width: 300px;
-        height: 34px;
         font-weight: 700;
         font-size: 30px;
-        color: #ffffff;
-        line-height: 34px;
+        color: #fff;
         cursor: pointer;
       }
-
       .nav-item {
         display: flex;
-        height: 34px;
-      }
-
-      .cart-link,
-      .memberpage-link {
-        padding: 10px;
-        font-size: 16px;
-        font-weight: 500;
-        color: #ffffff;
-        cursor: pointer;
-      }
-
-      /* 月曆區塊 */
-      .calendar-controls {
-        display: flex;
-        justify-content: center;
         align-items: center;
-        margin: 20px 0 10px 0;
-        gap: 10px;
+        gap: 40px;
+        position: relative;
       }
-
-      .calendar-controls button {
-        font-size: 20px;
-        padding: 0 10px;
+      .btn-link {
+        font-size: 16px;
+        color: #fff;
         cursor: pointer;
+        background: none;
+        border: none;
+      }
+      .user-dropdown {
+        cursor: pointer;
+        user-select: none;
+        color: #fff;
+      }
+      .user-dropdown::after {
+        content: "▼";
+        font-size: 8px;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+      .dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        background: #0f1414;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        min-width: 150px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 200;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .dropdown-menu.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .dropdown-menu li {
+        list-style: none;
+        padding: 12px 15px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
       }
 
-      .calendar-title {
-        font-size: 24px;
+      .dropdown-menu li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+
+      @keyframes rainbowShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+      .notifications {
+        cursor: pointer;
+        position: relative;
+      }
+      .notifications img {
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+      }
+      .notifications .badge {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        background: #d32f2f;
+        color: #fff;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+      }
+      .notif-dropdown {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+        background: #0f1414;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        z-index: 150;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .notif-dropdown.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .notif-dropdown ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .notif-dropdown li {
+        padding: 12px 15px;
+        border-bottom: 1px solid #2d3737;
+        font-size: 14px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
+      }
+      .notif-dropdown li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+
+      /* 導覽列按鈕 */
+      .nav-buttons {
+        display: flex;
+        gap: 27px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .nav-action-btn {
+        background: #1f2a2a;
+        color: #fff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
         font-weight: bold;
+        cursor: pointer;
+        transition: background 0.8s;
       }
-
-      .calendar {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 1px;
-        background: #ccc;
-        max-width: 1200px;
-        margin: 0 auto;
+      .nav-action-btn:hover {
+        background: #e53935;
       }
-
-      .day,
-      .weekday {
-        background: white;
-        padding: 10px;
-        min-height: 100px;
+      /* 登入彈窗 */
+      .modal-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 300;
+      }
+      .modal {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 320px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      .modal h3 {
+        margin-top: 0;
+        margin-bottom: 5px;
+        color: #1e2525;
+        text-align: center;
+        font-size: 20px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 6px;
+        color: #1e2525;
+      }
+      input {
+        width: 100%;
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
         box-sizing: border-box;
       }
-
-      .weekday {
-        background: #333;
-        color: white;
-        font-weight: bold;
-        text-align: center;
+      .error-msg {
+        color: #d32f2f;
+        font-size: 14px;
+        margin-top: 5px;
       }
-
-      .date-num {
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
-
-      .event {
-        font-size: 12px;
-        background: #ffecb3;
-        padding: 2px 4px;
-        border-radius: 4px;
-        margin-top: 3px;
-        line-height: 1.2;
+      .btn-submit {
+        width: 100%;
+        padding: 10px;
+        background: #d32f2f;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
         cursor: pointer;
-        transition: background 0.2s;
+        font-size: 16px;
       }
-
-      .event.selected {
-        background: #ffc107; /* selected時呈現深黃色 */
-        color: #000;
+      .btn-submit:hover {
+        background: #e53935;
       }
-
-      /* 按鈕區 */
-      .sell-buy-button {
-        margin-top: 40px;
+      /* 區塊通用樣式 */
+      .section {
+        padding: 60px 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        min-height: 300px;
         display: flex;
+        align-items: center;
+      }
+      .section-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #ffffff;
+      }
+      .section-subtitle {
+        font-size: 18px;
+        color: #f5ede4;
+        margin-bottom: 20px;
+      }
+      .section-subtitle.with-line {
+        position: relative;
+        padding-bottom: 40px;
+      }
+
+      .section-subtitle.with-line::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #bf9000;
+        border-radius: 2px;
+      }
+      .action-btn {
+        background: #d32f2f;
+        color: #fff;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .action-btn:hover {
+        background: #e53935;
+      }
+      .left,
+      .right {
+        width: 50%;
+        padding: 20px;
+      }
+      /* 區塊1：首頁標題 */
+      #section1 {
+        background: url("/static/image/coverimg.jpg") center/cover no-repeat;
+        text-align: center;
+        position: relative;
+        height: 94vh;
+        min-height: 500px;
+      }
+      #section1::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1;
+      }
+      #section1 .container {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
         justify-content: center;
+        align-items: center;
+        height: 100%;
+      }
+      #section1 .section-title {
+        font-size: 60px;
+        color: #ffffff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      #section1 .section-subtitle {
+        font-size: 24px;
+        color: #f5ede4;
+      }
+      #section1 .stats {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        text-align: right;
+        font-size: 16px;
+        color: #f5ede4;
+        line-height: 1.6;
+        z-index: 2;
+      }
+      /* 數字動畫樣式 */
+      #totalTrades,
+      #totalAmount {
+        display: inline-block;
+        min-width: 100px;
+        text-align: right;
+        transition: all 0.1s ease-out;
+      }
+      /* 區塊2：本月熱門場次 */
+      #section2 {
+        display: flex;
+      }
+      #section2 .section-title,
+      #section2 .section-subtitle {
+        color: #2d3737;
+      }
+      #section2 .left {
+        padding-top: 40px;
+        text-align: left;
+        color: #ffffff;
+      }
+      /* 排行榜樣式 */
+      .top-games-list {
+        list-style: none;
+        counter-reset: rank;
+        margin: 0;
+        padding: 0;
+        width: 600px;
+        white-space: nowrap;
+      }
+      .top-game-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        font-size: 18px;
+        color: #3a4646;
+        position: relative;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .top-game-item.ranked::before {
+        counter-increment: rank;
+        content: counter(rank);
+        display: inline-block;
+        width: 35px;
+        height: 35px;
+        line-height: 30px;
+        text-align: center;
+        color: #d32f2f;
+        border-radius: 50%;
+        margin-right: 15px;
+        font-weight: bold;
+      }
+      .top-game-item .game-info {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .top-game-item .trade-count {
+        font-weight: bold;
+        color: #3a4646;
+        margin-left: 10px;
+        white-space: nowrap;
+      }
+      /* 區塊3：功能按鈕 */
+      #section3 {
+        background: #2d3737;
+        color: #1e2525;
+      }
+      #section3 .container {
+        display: flex;
+        justify-content: space-between;
         gap: 20px;
       }
-
-      .btn-sell,
-      .btn-buy {
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        background-color: #007bff;
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
+      #section3 .square-block {
+        width: 30%;
+        background: #ffffff;
+        padding: 30px;
+        text-align: center;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
-
-      .btn-sell:hover,
-      .btn-buy:hover {
-        background-color: #0056b3;
+      #section3 .square-block .section-title {
+        font-size: 24px;
+        color: #1e2525;
+        margin-bottom: 10px;
+      }
+      #section3 .square-block p {
+        font-size: 16px;
+        color: #555;
+        margin-bottom: 20px;
+      }
+      /* 區塊4：即將來臨比賽 */
+      #section4 {
+        background: #ffffff;
+        display: flex;
+      }
+      #section4 .section-title,
+      #section4 .section-subtitle {
+        color: #2d3737;
+      }
+      #section4 .right {
+        padding-top: 40px;
+        text-align: right;
+        color: #ffffff;
+      }
+      /* 區塊5：統計圖表 */
+      #section5 {
+        background: #dcdcdc;
+        display: flex;
+        color: #1e2525;
+      }
+      #section5 .left .section-title,
+      #section5 .right .section-title {
+        color: #1e2525;
+      }
+      #section5 .chart-container {
+        height: 400px;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 20px;
+        position: relative;
+      }
+      /* 柱狀圖樣式 */
+      .bar-chart {
+        display: flex;
+        align-items: flex-end;
+        height: 300px;
+        position: relative;
+        padding-bottom: 2px;
+      }
+      .bar {
+        flex: 1;
+        margin: 0 10px;
+        background: rgba(211, 47, 47, 0.6);
+        border: 1px solid rgba(211, 47, 47, 1);
+        position: relative;
+        transition: height 0.5s ease;
+        min-width: 40px;
+      }
+      .bar:hover {
+        background: rgba(211, 47, 47, 1);
+      }
+      .bar-label {
+        position: absolute;
+        bottom: -50px;
+        width: 100%;
+        text-align: center;
+        font-size: 11px;
+        color: #1e2525;
+      }
+      .bar-value {
+        position: absolute;
+        top: -25px;
+        width: 100%;
+        text-align: center;
+        font-size: 13px;
+        color: #1e2525;
+      }
+      /* 圓餅圖樣式 */
+      .pie-chart-container {
+        display: flex;
+        align-items: center;
+        height: 100%;
+      }
+      .pie-chart {
+        width: 300px;
+        height: 300px;
+        border-radius: 50%;
+        aspect-ratio: 1/1;
+        position: relative;
+        margin-bottom: 15px;
+        margin-right: 10px;
+      }
+      .pie-chart-legend {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 14px;
+        color: #1e2525;
+      }
+      .pie-chart-legend li {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .pie-chart-legend span {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-right: 10px;
+        border-radius: 3px;
+      }
+      /* 區塊6：特色介紹 */
+      #section6 {
+        background: #364444;
+      }
+      #section6 .container {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      #section6 .circle-block {
+        width: 22%;
+        background: #ffffff;
+        padding: 30px;
+        text-align: center;
+        border-radius: 50%;
+        aspect-ratio: 1/1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+      #section6 .circle-block .section-title {
+        font-size: 20px;
+        margin-bottom: 10px;
+        color: #3a4646;
+      }
+      #section6 .circle-block p {
+        font-size: 14px;
+        color: #3a4646;
+      }
+      /* 浮出動畫效果 */
+      .section {
+        opacity: 0;
+        transform: translateY(50px);
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      }
+      .fade-in-up {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      /* 確保 #section1 不受影響 */
+      #section1 {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      /* 區塊7：Footer */
+      #footer {
+        background: #0f1414;
+        padding: 20px 0;
+        text-align: center;
+        color: #f5ede4;
+        font-size: 14px;
       }
     </style>
   </head>
   <body>
+    <!-- 進度條 -->
+    <div id="loading-bar"></div>
     <header>
       <div class="navigation">
         <div class="navlist">
-          <div class="webtitle">Pitch-A-Seat</div>
-          <div class="nav-item">
-            <!-- <div class="cart-link">購物車</div> -->
-            <div class="memberpage-link">會員中心</div>
+          <div class="webtitle" onclick="location.reload()">Pitch-A-Seat</div>
+          <div class="nav-buttons">
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/sell')"
+            >
+              賣 票
+            </button>
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/buy')"
+            >
+              買 票
+            </button>
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/reservation')"
+            >
+              預 約
+            </button>
+          </div>
+          <div class="nav-item" id="navRight">
+            <div id="userArea">
+              <button class="btn-link" id="btnLogin">登入／註冊</button>
+            </div>
           </div>
         </div>
       </div>
     </header>
-
-    <!-- 月曆控制列 -->
-    <div class="calendar-controls">
-      <button id="prevMonth">←</button>
-      <div class="calendar-title" id="monthLabel">2025年6月</div>
-      <button id="nextMonth">→</button>
+    <!-- 登入彈窗 -->
+    <div class="modal-bg" id="loginModalBg">
+      <div class="modal">
+        <h3>會員登入</h3>
+        <div class="form-group">
+          <label for="loginEmail">電子郵件</label>
+          <input
+            type="email"
+            id="loginEmail"
+            placeholder="請輸入電子郵件"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">密碼</label>
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="請輸入密碼"
+            required
+          />
+        </div>
+        <div class="error-msg" id="loginErrorMsg"></div>
+        <button class="btn-submit" id="btnDoLogin">登入</button>
+        <p
+          style="
+            color: #555;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+          "
+        >
+          還沒註冊？
+          <span style="color: #d32f2f; cursor: pointer" id="toRegister"
+            >立即註冊</span
+          >
+        </p>
+      </div>
     </div>
-
-    <!-- 賽程月曆 -->
-    <div class="calendar" id="calendar"></div>
-
-    <!-- 賣票買票按鈕 -->
-    <div class="sell-buy-button">
-      <button type="button" class="btn-sell">我要賣票</button>
-      <button type="button" class="btn-buy">我要買票</button>
-    </div>
-
+    <!-- 區塊1：首頁標題 -->
+    <section id="section1" class="section">
+      <div class="container">
+        <h1 class="section-title">Pitch-A-Seat</h1>
+        <p class="section-subtitle">中華職棒球賽二手票交易平台</p>
+      </div>
+      <div class="stats">
+        <p>本站累積交易次數：<span id="totalTrades">載入中...</span></p>
+        <p>本站累積交易金額：<span id="totalAmount">載入中...</span></p>
+      </div>
+    </section>
+    <!-- 區塊2：本月熱門場次 -->
+    <section id="section2" class="section">
+      <div class="container" style="display: flex">
+        <div class="left">
+          <h2 class="section-title">熱門場次排行榜</h2>
+          <p class="section-subtitle with-line">精選本月最熱賣場次</p>
+        </div>
+        <div class="right">
+          <ol id="topGamesList" class="top-games-list">
+            <li class="top-game-item ranked">載入中...</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+    <!-- 區塊3：功能按鈕 -->
+    <section id="section3" class="section">
+      <div class="container">
+        <div class="square-block">
+          <h3 class="section-title">我要賣票</h3>
+          <p>自訂售票條件、輕鬆上架票券，<br />快速找到買家</p>
+          <button
+            class="action-btn"
+            onclick="requireLogin(() => location.href='/sell')"
+          >
+            我要賣票
+          </button>
+        </div>
+        <div class="square-block">
+          <h3 class="section-title">我要買票</h3>
+          <p>瀏覽熱門場次、自選排序條件，<br />搶購心儀的票券</p>
+          <button
+            class="action-btn"
+            onclick="requireLogin(() => location.href='/buy')"
+          >
+            我要買票
+          </button>
+        </div>
+        <div class="square-block">
+          <h3 class="section-title">我要預約</h3>
+          <p>設定預約條件、鎖定未來場次，不漏接任何比賽</p>
+          <button
+            class="action-btn"
+            onclick="requireLogin(() => location.href='/reservation')"
+          >
+            我要預約
+          </button>
+        </div>
+      </div>
+    </section>
+    <!-- 區塊4：即將來臨比賽 -->
+    <section id="section4" class="section">
+      <div class="container" style="display: flex">
+        <div class="left">
+          <ol id="upcomingGamesList" class="top-games-list">
+            <li class="top-game-item">載入中...</li>
+          </ol>
+        </div>
+        <div class="right">
+          <h2 class="section-title">即將來臨的比賽</h2>
+          <p class="section-subtitle with-line">
+            記得你的需求，客製化推薦最適合你的比賽
+          </p>
+        </div>
+      </div>
+    </section>
+    <!-- 區塊5：統計圖表 -->
+    <section id="section5" class="section">
+      <div class="container" style="display: flex">
+        <div class="left">
+          <h3 class="section-title">熱門場次票價中位數</h3>
+          <div class="chart-container">
+            <div id="medianPriceChart" class="bar-chart"></div>
+          </div>
+        </div>
+        <div class="right">
+          <h3 class="section-title">球隊交易熱度排行</h3>
+          <div class="chart-container">
+            <div class="pie-chart-container">
+              <div id="teamTradePieChart" class="pie-chart"></div>
+              <ul id="pieChartLegend" class="pie-chart-legend"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- 區塊6：特色介紹 -->
+    <section id="section6" class="section">
+      <div class="container">
+        <div class="circle-block">
+          <h3 class="section-title">安全交易</h3>
+          <p>平台提供第三方金流支付，保障你的交易</p>
+        </div>
+        <div class="circle-block">
+          <h3 class="section-title">即時通知</h3>
+          <p>電子郵件通知，即時接收票券上架與交易訊息</p>
+        </div>
+        <div class="circle-block">
+          <h3 class="section-title">快速配對</h3>
+          <p>個人化推薦，快速找到適合你的票券</p>
+        </div>
+        <div class="circle-block">
+          <h3 class="section-title">賣家評分</h3>
+          <p>賣家評分機制，購票指標更客觀</p>
+        </div>
+      </div>
+    </section>
+    <!-- 區塊7：Footer -->
+    <footer id="footer">
+      <div class="container">
+        <p>COPYRIGHT © 2025 Pitch-A-Seat</p>
+      </div>
+    </footer>
     <script>
-      // 顯示初始月曆
-      const calendar = document.getElementById("calendar");
-      const monthLabel = document.getElementById("monthLabel");
-      const now = new Date();
-      let currentYear = now.getFullYear();
-      let currentMonth = now.getMonth() + 1;
-
-      const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
-
-      // 存放「目前使用者在首頁選到哪一筆 game」
-      let selectedGame = null;
-
-      function renderCalendar(year, month) {
-        calendar.innerHTML = "";
-
-        const firstDay = new Date(year, month - 1, 1);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const startDay = firstDay.getDay();
-
-        monthLabel.textContent = `${year}年${month}月`;
-
-        // 先渲染「星期」列
-        weekdays.forEach((day) => {
-          const w = document.createElement("div");
-          w.className = "weekday";
-          w.textContent = day;
-          calendar.appendChild(w);
-        });
-
-        // 補空格
-        for (let i = 0; i < startDay; i++) {
-          const blank = document.createElement("div");
-          blank.className = "day";
-          calendar.appendChild(blank);
-        }
-
-        // 撈當月所有賽程
-        fetch(`/api/schedule?year=${year}&month=${month}`)
-          .then((res) => res.json())
-          .then((games) => {
-            // 先把所有場次按日期分組
-            const gameMap = {};
-            games.forEach((game) => {
-              const dayNum = new Date(game.game_date).getDate();
-              if (!gameMap[dayNum]) gameMap[dayNum] = [];
-              gameMap[dayNum].push(game);
-            });
-
-            // 將每一天（1～daysInMonth）畫出來
-            for (let i = 1; i <= daysInMonth; i++) {
-              const dayBox = document.createElement("div");
-              dayBox.className = "day";
-
-              const dateLabel = document.createElement("div");
-              dateLabel.className = "date-num";
-              dateLabel.textContent = i;
-              dayBox.appendChild(dateLabel);
-
-              if (gameMap[i]) {
-                gameMap[i].forEach((g) => {
-                  const e = document.createElement("div");
-                  e.className = "event";
-                  e.innerHTML = `
-                  <div>${g.stadium} (${g.game_number})</div>
-                  <div>${g.team_away} vs ${g.team_home}</div>
-                  <div>${g.start_time.slice(0, 5)}</div>
-                `;
-                  // 把這筆賽程的重要資訊都綁到 DOM element 的 data-attributes：
-                  e.dataset.gameId = g.id; // 後端 SELECT id AS id
-                  e.dataset.date = g.game_date; // yyyy-mm-dd
-                  e.dataset.time = g.start_time; // HH:MM
-                  e.dataset.stadium = g.stadium;
-                  e.dataset.teamHome = g.team_home;
-                  e.dataset.teamAway = g.team_away;
-                  e.dataset.gameNumber = g.game_number;
-
-                  // 點擊某個 “event” 卡片時：先把之前的 selected 樣式移掉，再把新卡片標記為 selected，最後把該筆資料存進 selectedGame
-                  e.addEventListener("click", () => {
-                    // 1. 移除先前被選到的所有 .event.selected
-                    document
-                      .querySelectorAll(".event.selected")
-                      .forEach((old) => {
-                        old.classList.remove("selected");
-                      });
-                    // 2. 將自己標成 selected
-                    e.classList.add("selected");
-
-                    // 3. 把該筆資料存在 selectedGame
-                    selectedGame = {
-                      game_id: e.dataset.gameId,
-                      date: e.dataset.date,
-                      time: e.dataset.time,
-                      stadium: e.dataset.stadium,
-                      team_home: e.dataset.teamHome,
-                      team_away: e.dataset.teamAway,
-                      game_number: e.dataset.gameNumber,
-                    };
-                  });
-                  dayBox.appendChild(e);
-                });
-              }
-
-              calendar.appendChild(dayBox);
-            }
-          });
-      }
-
-      // 上下月切換
-      document.getElementById("prevMonth").addEventListener("click", () => {
-        currentMonth--;
-        if (currentMonth === 0) {
-          currentMonth = 12;
-          currentYear--;
-        }
-        renderCalendar(currentYear, currentMonth);
-      });
-
-      document.getElementById("nextMonth").addEventListener("click", () => {
-        currentMonth++;
-        if (currentMonth === 13) {
-          currentMonth = 1;
-          currentYear++;
-        }
-        renderCalendar(currentYear, currentMonth);
-      });
-
-      // 首頁導覽按鈕
-      document.querySelector(".webtitle").addEventListener("click", () => {
-        location.reload();
-      });
-
-      // 「我要賣票」按鈕：若沒選到 selectedGame，就跳 alert；有選到就做成 query string 並跳轉
-      document.querySelector(".btn-sell").addEventListener("click", () => {
-        if (!selectedGame) {
-          alert("請先在月曆上點選一筆您要賣票的賽程");
+      // 登入 & 使用者下拉
+      async function fetchAuthStatus() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showLoginBtn();
           return;
         }
-        // 把 selectedGame 變成 query string
-        const params = new URLSearchParams({
-          game_id: selectedGame.game_id,
-          date: selectedGame.date,
-          time: selectedGame.time,
-          stadium: selectedGame.stadium,
-          team_home: selectedGame.team_home,
-          team_away: selectedGame.team_away,
-          game_number: selectedGame.game_number,
-        }).toString();
-
-        window.location.href = `/sell?${params}`;
-      });
-
-      // 「我要買票」按鈕：導到 /events
-      document.querySelector(".btn-buy").addEventListener("click", () => {
-        fetch("/events", { method: "GET" }).then((res) => {
-          window.location.href = res.url;
-        });
-      });
-
-      // 點擊導頁至會員中心
-      document
-        .querySelector(".memberpage-link")
-        .addEventListener("click", () => {
-          fetch("/membership", { method: "GET" }).then((res) => {
-            window.location.href = res.url;
+        try {
+          const res = await fetch("/api/user/auth", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
           });
+          if (!res.ok) throw "";
+          const user = await res.json();
+          document.getElementById("navRight").innerHTML = `
+            <div class="notifications" id="notifBell">
+              <img src="/static/image/bell.png" alt="通知鈴鐺" />
+              <span class="badge" id="notifCount"></span>
+              <div class="notif-dropdown" id="notifDropdown">
+                <ul id="notifList"></ul>
+              </div>
+            </div>
+            <div id="userArea"></div>
+          `;
+          showUserDropdown(user);
+          loadNotifications();
+          document
+            .getElementById("notifBell")
+            .addEventListener("click", async (e) => {
+              e.stopPropagation();
+              const dd = document.getElementById("notifDropdown");
+              if (dd.style.display !== "block") {
+                await fetch("/api/mark_notifications_read", {
+                  method: "POST",
+                  headers: {
+                    Authorization:
+                      "Bearer " + localStorage.getItem("access_token"),
+                  },
+                });
+                await loadNotifications();
+              }
+              dd.classList.toggle("show");
+              document.getElementById("dropdownMenu").classList.remove("show");
+            });
+        } catch {
+          localStorage.removeItem("access_token");
+          showLoginBtn();
+        }
+      }
+      function showLoginBtn() {
+        document.getElementById(
+          "userArea"
+        ).innerHTML = `<button class="btn-link" id="btnLogin">登入／註冊</button>`;
+        document.getElementById("btnLogin").onclick = openLoginModal;
+      }
+      function showUserDropdown(user) {
+        document.getElementById("userArea").innerHTML = `
+    <div class="user-dropdown" id="userDropdown">
+      ${user.name}
+      <ul class="dropdown-menu" id="dropdownMenu">
+        <li id="gotoProfile">個人資料</li>
+        <li id="gotoSell">我的售票</li>
+        <li id="gotoBuy">我的購買</li>
+        <li id="gotoReservation">我的預約</li>
+        <li id="gotoLaunch">我的上架紀錄</li>
+        <li id="doLogout">登出</li>
+      </ul>
+    </div>`;
+        const dd = document.getElementById("userDropdown"),
+          menu = document.getElementById("dropdownMenu");
+        dd.addEventListener("click", (e) => {
+          menu.classList.toggle("show");
+          document.getElementById("notifDropdown").classList.remove("show");
+          e.stopPropagation();
         });
-
-      // 首次載入
-      renderCalendar(currentYear, currentMonth);
+        document.addEventListener("click", (e) => {
+          if (!dd.contains(e.target)) menu.classList.remove("show");
+        });
+        document
+          .getElementById("gotoProfile")
+          .addEventListener("click", () => (location.href = "/member_profile"));
+        document
+          .getElementById("gotoSell")
+          .addEventListener("click", () => (location.href = "/member_sell"));
+        document
+          .getElementById("gotoBuy")
+          .addEventListener("click", () => (location.href = "/member_buy"));
+        document
+          .getElementById("gotoReservation")
+          .addEventListener(
+            "click",
+            () => (location.href = "/member_reservation")
+          );
+        document
+          .getElementById("gotoLaunch")
+          .addEventListener("click", () => (location.href = "/member_launch"));
+        document.getElementById("doLogout").addEventListener("click", () => {
+          localStorage.removeItem("access_token");
+          location.reload();
+        });
+      }
+      async function loadNotifications() {
+        const token = localStorage.getItem("access_token");
+        if (!token) return;
+        try {
+          const res = await fetch("/api/notifications", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (!res.ok) return;
+          const notes = await res.json();
+          const ul = document.getElementById("notifList");
+          ul.innerHTML = "";
+          let unread = 0;
+          notes.forEach((n) => {
+            const li = document.createElement("li");
+            li.textContent = n.message;
+            li.onclick = () => (location.href = n.url);
+            ul.appendChild(li);
+            if (!n.is_read) unread++;
+          });
+          document.getElementById("notifCount").textContent = unread;
+        } catch {}
+      }
+      document.addEventListener("click", () => {
+        const notifDropdown = document.getElementById("notifDropdown");
+        if (notifDropdown) notifDropdown.classList.remove("show");
+      });
+      // 登入 Modal
+      const loginModal = document.getElementById("loginModalBg"),
+        loginEmail = document.getElementById("loginEmail"),
+        loginPassword = document.getElementById("loginPassword"),
+        loginError = document.getElementById("loginErrorMsg");
+      function openLoginModal() {
+        loginError.textContent = "";
+        loginEmail.value = "";
+        loginPassword.value = "";
+        loginModal.style.display = "flex";
+      }
+      function closeLoginModal() {
+        loginModal.style.display = "none";
+      }
+      document.getElementById("toRegister").onclick = () =>
+        (location.href = "/register");
+      document.getElementById("btnDoLogin").onclick = async () => {
+        const email = loginEmail.value.trim(),
+          password = loginPassword.value.trim();
+        if (!email || !password) {
+          loginError.textContent = "請填寫電子郵件與密碼";
+          return;
+        }
+        try {
+          const res = await fetch("/api/user/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            loginError.textContent = data.detail || "登入失敗";
+            return;
+          }
+          localStorage.setItem("access_token", data.access_token);
+          closeLoginModal();
+          await fetchAuthStatus();
+          await fetchUpcomingGames();
+        } catch {
+          loginError.textContent = "伺服器錯誤";
+        }
+      };
+      loginModal.addEventListener("click", (e) => {
+        if (e.target === loginModal) closeLoginModal();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeLoginModal();
+      });
+      // 賣票／買票／預約
+      function requireLogin(fn) {
+        if (!localStorage.getItem("access_token")) {
+          openLoginModal();
+          return;
+        }
+        fn();
+      }
+      // 進度條動畫
+      function initLoadingBar() {
+        const loadingBar = document.getElementById("loading-bar");
+        let progress = 0;
+        const interval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            loadingBar.style.width = `${progress}%`;
+          }
+        }, 200);
+        window.onload = () => {
+          clearInterval(interval);
+          progress = 100;
+          loadingBar.style.width = "100%";
+          setTimeout(() => {
+            loadingBar.style.opacity = "0";
+            setTimeout(() => {
+              loadingBar.style.display = "none";
+            }, 300);
+          }, 500);
+        };
+      }
+      // 數字動畫
+      function animateNumber(
+        elementId,
+        targetValue,
+        isCurrency,
+        duration = 2000
+      ) {
+        const element = document.getElementById(elementId);
+        const startValue = 0;
+        const startTime = performance.now();
+        function easeInOutQuad(t) {
+          return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        }
+        function updateNumber(timestamp) {
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const easedProgress = easeInOutQuad(progress);
+          const currentValue =
+            startValue + (targetValue - startValue) * easedProgress;
+          if (isCurrency) {
+            element.textContent = `NT$${Math.floor(currentValue).toLocaleString(
+              "zh-TW"
+            )}`;
+          } else {
+            element.textContent =
+              Math.floor(currentValue).toLocaleString("zh-TW");
+          }
+          if (progress < 1) {
+            requestAnimationFrame(updateNumber);
+          } else {
+            element.textContent = isCurrency
+              ? `NT$${targetValue.toLocaleString("zh-TW")}`
+              : targetValue.toLocaleString("zh-TW");
+          }
+        }
+        requestAnimationFrame(updateNumber);
+      }
+      // 取得累積交易次數
+      async function fetchTotalTrades() {
+        try {
+          const res = await fetch("/api/total_trades");
+          if (!res.ok) throw new Error("無法取得交易次數");
+          const data = await res.json();
+          animateNumber("totalTrades", data.total_trades, false);
+        } catch (e) {
+          console.error("取得交易次數失敗:", e);
+          document.getElementById("totalTrades").textContent = "無法載入";
+        }
+      }
+      // 取得累積交易金額
+      async function fetchTotalAmount() {
+        try {
+          const res = await fetch("/api/total_amount");
+          if (!res.ok) throw new Error("無法取得交易金額");
+          const data = await res.json();
+          animateNumber("totalAmount", data.total_amount, true);
+        } catch (e) {
+          console.error("取得交易金額失敗:", e);
+          document.getElementById("totalAmount").textContent = "無法載入";
+        }
+      }
+      // 取得本月熱賣場次排行榜
+      async function fetchTopGames() {
+        try {
+          const res = await fetch("/api/top_games");
+          if (!res.ok) throw new Error("無法取得排行榜");
+          const games = await res.json();
+          const list = document.getElementById("topGamesList");
+          list.innerHTML = "";
+          if (games.length === 0) {
+            list.innerHTML =
+              '<li class="top-game-item ranked">本月尚無交易資料</li>';
+            return;
+          }
+          games.forEach((game) => {
+            const li = document.createElement("li");
+            li.className = "top-game-item ranked";
+            li.innerHTML = `
+              <div class="game-info">
+                ${game.game_date}<br>${game.team_away} vs ${game.team_home}
+              </div>
+              <span class="trade-count">${game.trade_count} 筆</span>
+            `;
+            list.appendChild(li);
+          });
+          await fetchMedianPrices();
+        } catch (e) {
+          console.error("取得排行榜失敗:", e);
+          document.getElementById("topGamesList").innerHTML =
+            '<li class="top-game-item ranked">無法載入排行榜</li>';
+        }
+      }
+      // 取得票價中位數並繪製柱狀圖
+      async function fetchMedianPrices() {
+        try {
+          const res = await fetch("/api/top_games_median_prices");
+          if (!res.ok) throw new Error("無法取得票價中位數");
+          const games = await res.json();
+          const teamShortNames = {
+            中信兄弟: "兄弟",
+            富邦悍將: "悍將",
+            台鋼雄鷹: "鷹",
+            樂天桃猿: "猿",
+            味全龍: "龍",
+            "統一7-ELEVEn獅": "獅",
+          };
+          const labels = games.map(
+            (game) =>
+              `${game.game_date}<br>${
+                teamShortNames[game.team_away] || game.team_away
+              } vs ${teamShortNames[game.team_home] || game.team_home}`
+          );
+          const prices = games.map((game) => game.median_price);
+          const maxPrice = Math.max(...prices) * 1.1;
+          const chart = document.getElementById("medianPriceChart");
+          chart.innerHTML = "";
+          prices.forEach((price, i) => {
+            const bar = document.createElement("div");
+            bar.className = "bar";
+            bar.style.height = `${(price / maxPrice) * 300}px`;
+            bar.innerHTML = `
+              <span class="bar-value">${price.toLocaleString("zh-TW")} 元</span>
+              <span class="bar-label">${labels[i]}</span>
+            `;
+            chart.appendChild(bar);
+          });
+        } catch (err) {
+          console.error("取得票價失敗:", err);
+          document.getElementById("medianPriceChart").parentNode.innerHTML =
+            "無法載入柱圖";
+        }
+      }
+      // 取得球隊交易熱度並繪製圓餅圖
+      async function fetchTeamTradeRank() {
+        try {
+          const res = await fetch("/api/team_trade_rank");
+          if (!res.ok) throw new Error("無法取得球隊交易熱度");
+          const teams = await res.json();
+          const pieChart = document.getElementById("teamTradePieChart");
+          const legend = document.getElementById("pieChartLegend");
+          if (teams.length === 0) {
+            pieChart.parentNode.innerHTML = "本月尚無交易資料";
+            return;
+          }
+          const teamColors = {
+            中信兄弟: "#FFC107",
+            台鋼雄鷹: "#1B5E20",
+            富邦悍將: "#0D47A1",
+            "統一7-ELEVEn獅": "#F4511E",
+            樂天桃猿: "#880E4F",
+            味全龍: "#D32F2F",
+          };
+          const totalTrades = teams.reduce(
+            (sum, team) => sum + team.trade_count,
+            0
+          );
+          let cumulativePercent = 0;
+          const gradients = teams.map((team) => {
+            const percent = (team.trade_count / totalTrades) * 100;
+            const startPercent = cumulativePercent;
+            cumulativePercent += percent;
+            const color = teamColors[team.team] || "#CCCCCC";
+            return `${color} ${startPercent}% ${cumulativePercent}%`;
+          });
+          pieChart.style.background = `conic-gradient(${gradients.join(", ")})`;
+          legend.innerHTML = "";
+          teams.forEach((team) => {
+            const li = document.createElement("li");
+            const color = teamColors[team.team] || "#CCCCCC";
+            li.innerHTML = `
+              <span style="background-color: ${color}"></span>
+              ${team.team}: ${((team.trade_count / totalTrades) * 100).toFixed(
+              1
+            )}%
+            `;
+            legend.appendChild(li);
+          });
+        } catch (err) {
+          console.error("取得球隊交易熱度失敗:", err);
+          document.getElementById("teamTradePieChart").parentNode.innerHTML =
+            "無法載入圓餅圖";
+        }
+      }
+      // 取得個人化推薦比賽（即將來臨比賽）
+      async function fetchUpcomingGames() {
+        const list = document.getElementById("upcomingGamesList");
+        list.innerHTML = "";
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          list.innerHTML =
+            '<li class="top-game-item">登入之後查看你的個人化推薦賽事</li>';
+          return;
+        }
+        try {
+          const res = await fetch("/api/recommendations", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error("無法取得推薦比賽");
+          const games = await res.json();
+          if (games.length === 0) {
+            list.innerHTML =
+              '<li class="top-game-item ranked">目前無符合條件的推薦比賽</li>';
+            return;
+          }
+          games.forEach((game) => {
+            const li = document.createElement("li");
+            li.className = "top-game-item ranked";
+            li.innerHTML = `
+              <div class="game-info">
+                ${game.game_date}<br>${game.team_away} vs ${game.team_home}
+              </div>
+            `;
+            list.appendChild(li);
+          });
+        } catch (e) {
+          console.error("取得推薦比賽失敗:", e);
+          list.innerHTML =
+            '<li class="top-game-item ranked">伺服器錯誤，請稍後重試</li>';
+        }
+      }
+      // 初始化
+      document.addEventListener("DOMContentLoaded", () => {
+        const sections = document.querySelectorAll(
+          "#section2, #section3, #section4, #section5, #section6"
+        );
+        const observer = new IntersectionObserver(
+          (entries, observer) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("fade-in-up");
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.1,
+            rootMargin: "0px 0px -50px 0px",
+          }
+        );
+        sections.forEach((section) => {
+          observer.observe(section);
+        });
+        fetchAuthStatus();
+        initLoadingBar();
+        fetchTotalTrades();
+        fetchTotalAmount();
+        fetchTopGames();
+        fetchTeamTradeRank();
+        fetchUpcomingGames();
+      });
     </script>
   </body>
 </html>

@@ -15,7 +15,8 @@ config={
 cnxpool=mysql.connector.pooling.MySQLConnectionPool(
     pool_name="mypool", 
     pool_size=20,
-    pool_reset_session=True,  # 建議加入pool_reset_session=True,**config這一行 
+    autocommit=False,            
+    pool_reset_session=True,  
     **config)
 
 

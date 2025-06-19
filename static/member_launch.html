@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的上架紀錄 | Pitch-A-Seat</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/x-icon" href="/static/image/favicon.png" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #f5f5f5;
+        padding-top: 60px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .content-wrapper {
+        flex: 1 0 auto;
+      }
+      /* 進度條樣式 */
+      #loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background-color: #8b1e3f;
+        z-index: 9999;
+        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      }
+      /* 導覽列 */
+      .navigation {
+        display: flex;
+        justify-content: center;
+        height: 80px;
+        padding: 10px 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #1f2a2a;
+        z-index: 100;
+      }
+      .navlist {
+        display: flex;
+        justify-content: space-between;
+        width: 1200px;
+        align-items: center;
+      }
+      .webtitle {
+        font-weight: 700;
+        font-size: 30px;
+        color: #fff;
+        cursor: pointer;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        position: relative;
+      }
+      .btn-link {
+        font-size: 16px;
+        color: #fff;
+        cursor: pointer;
+        background: none;
+        border: none;
+      }
+      .user-dropdown {
+        cursor: pointer;
+        user-select: none;
+        color: #fff;
+      }
+      .user-dropdown::after {
+        content: "▼";
+        font-size: 8px;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+      .dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        background: #0f1414;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        min-width: 150px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 200;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .dropdown-menu.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .dropdown-menu li {
+        list-style: none;
+        padding: 12px 15px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
+      }
+      .dropdown-menu li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+      @keyframes rainbowShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+      .notifications {
+        cursor: pointer;
+        position: relative;
+      }
+      .notifications img {
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+      }
+      .notifications .badge {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        background: #d32f2f;
+        color: #fff;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+      }
+      .notif-dropdown {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+        background: #0f1414;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        z-index: 150;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .notif-dropdown.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .notif-dropdown ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .notif-dropdown li {
+        padding: 12px 15px;
+        border-bottom: 1px solid #2d3737;
+        font-size: 14px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
+      }
+      .notif-dropdown li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+      /* 導覽列按鈕 */
+      .nav-buttons {
+        display: flex;
+        gap: 27px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .nav-action-btn {
+        background: #1f2a2a;
+        color: #fff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.8s;
+      }
+      .nav-action-btn:hover {
+        background: #e53935;
+      }
+      /* 訂單區塊樣式 */
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .section-title {
+        margin-top: 30px;
+        font-size: 20px;
+        font-weight: bold;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 5px;
+      }
+      .order-block {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin: 15px 0;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .order-main {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .order-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+      }
+      .order-row.main-info {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+      }
+      .btn-remove {
+        background-color: #dc3545;
+        color: #fff;
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn-remove:hover {
+        background-color: #c82333;
+      }
+      .btn-details {
+        background-color: #6c757d;
+        color: #fff;
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        display: block;
+        margin-top: 25px;
+        margin-bottom: 15px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .order-details {
+        display: none;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f9f9f9;
+        border: 1px solid #eee;
+        border-radius: 4px;
+      }
+      .order-details.show {
+        display: block;
+      }
+      /* 載入動畫樣式 */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #8b1e3f;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* 區塊7：Footer */
+      #footer {
+        background: #0f1414;
+        padding: 20px 0;
+        text-align: center;
+        color: #f5ede4;
+        font-size: 14px;
+        flex-shrink: 0;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content-wrapper">
+      <!-- 進度條 -->
+      <div id="loading-bar" aria-hidden="true"></div>
+      <!-- 載入動畫 -->
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+      </div>
+      <!-- 驗證 token -->
+      <script>
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          alert("請先登入");
+          window.location.href = "/";
+        }
+      </script>
+      <!-- 導覽列 -->
+      <header>
+        <div class="navigation">
+          <div class="navlist">
+            <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+            <div class="nav-buttons">
+              <button
+                class="nav-action-btn"
+                onclick="requireLogin(() => location.href='/sell')"
+              >
+                賣 票
+              </button>
+              <button
+                class="nav-action-btn"
+                onclick="requireLogin(() => location.href='/buy')"
+              >
+                買 票
+              </button>
+              <button
+                class="nav-action-btn"
+                onclick="requireLogin(() => location.href='/reservation')"
+              >
+                預 約
+              </button>
+            </div>
+            <div class="nav-item" id="navRight">
+              <div class="notifications" id="notifBell">
+                <img src="/static/image/bell.png" alt="通知鈴鐺" />
+                <span class="badge" id="notifCount"></span>
+                <div class="notif-dropdown" id="notifDropdown">
+                  <ul id="notifList"></ul>
+                </div>
+              </div>
+              <div id="userArea"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <!-- 訂單區塊 -->
+      <div class="container">
+        <div class="section-title">我的上架紀錄</div>
+        <div id="ticketList"></div>
+      </div>
+    </div>
+    <!-- 區塊7：Footer -->
+    <footer id="footer">
+      <div class="container">
+        <p>COPYRIGHT © 2025 Pitch-A-Seat</p>
+      </div>
+    </footer>
+    <script>
+      // 導覽列功能：通知鈴鐺與使用者下拉選單
+      async function fetchAuthStatus() {
+        const token = localStorage.getItem("access_token");
+        try {
+          const res = await fetch("/api/user/auth", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+          if (!res.ok) throw "";
+          const user = await res.json();
+          document.getElementById("navRight").innerHTML = `
+            <div class="notifications" id="notifBell">
+              <img src="/static/image/bell.png" alt="通知鈴鐺" />
+              <span class="badge" id="notifCount"></span>
+              <div class="notif-dropdown" id="notifDropdown">
+                <ul id="notifList"></ul>
+              </div>
+            </div>
+            <div id="userArea"></div>
+          `;
+          showUserDropdown(user);
+          loadNotifications();
+          document
+            .getElementById("notifBell")
+            .addEventListener("click", async (e) => {
+              e.stopPropagation();
+              const dd = document.getElementById("notifDropdown");
+              if (dd.classList.contains("show")) {
+                dd.classList.remove("show");
+              } else {
+                await fetch("/api/mark_notifications_read", {
+                  method: "POST",
+                  headers: {
+                    Authorization:
+                      "Bearer " + localStorage.getItem("access_token"),
+                  },
+                });
+                await loadNotifications();
+                dd.classList.add("show");
+              }
+              document.getElementById("dropdownMenu").classList.remove("show");
+            });
+        } catch {
+          localStorage.removeItem("access_token");
+          alert("登入已失效，請重新登入");
+          location.href = "/";
+        }
+      }
+      function showUserDropdown(user) {
+        document.getElementById("userArea").innerHTML = `
+          <div class="user-dropdown" id="userDropdown">
+            ${user.name}
+            <ul class="dropdown-menu" id="dropdownMenu">
+              <li id="gotoProfile">個人資料</li>
+              <li id="gotoSell">我的售票</li>
+              <li id="gotoBuy">我的購買</li>
+              <li id="gotoReservation">我的預約</li>
+              <li id="gotoLaunch">我的上架紀錄</li>
+              <li id="doLogout">登出</li>
+            </ul>
+          </div>`;
+        const dd = document.getElementById("userDropdown"),
+          menu = document.getElementById("dropdownMenu");
+        dd.addEventListener("click", (e) => {
+          menu.classList.toggle("show");
+          document.getElementById("notifDropdown").classList.remove("show");
+          e.stopPropagation();
+        });
+        document.addEventListener("click", (e) => {
+          if (!dd.contains(e.target)) menu.classList.remove("show");
+        });
+        document
+          .getElementById("gotoProfile")
+          .addEventListener("click", () => (location.href = "/member_profile"));
+        document
+          .getElementById("gotoSell")
+          .addEventListener("click", () => (location.href = "/member_sell"));
+        document
+          .getElementById("gotoBuy")
+          .addEventListener("click", () => (location.href = "/member_buy"));
+        document
+          .getElementById("gotoReservation")
+          .addEventListener(
+            "click",
+            () => (location.href = "/member_reservation")
+          );
+        document
+          .getElementById("gotoLaunch")
+          .addEventListener("click", () => (location.href = "/member_launch"));
+        document.getElementById("doLogout").addEventListener("click", () => {
+          localStorage.removeItem("access_token");
+          location.href = "/";
+        });
+      }
+      async function loadNotifications() {
+        const token = localStorage.getItem("access_token");
+        if (!token) return;
+        try {
+          const res = await fetch("/api/notifications", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (!res.ok) return;
+          const notes = await res.json();
+          const ul = document.getElementById("notifList");
+          ul.innerHTML = "";
+          let unread = 0;
+          notes.forEach((n) => {
+            const li = document.createElement("li");
+            li.textContent = n.message;
+            li.onclick = () => (location.href = n.url);
+            ul.appendChild(li);
+            if (!n.is_read) unread++;
+          });
+          document.getElementById("notifCount").textContent = unread;
+        } catch {}
+      }
+      document.addEventListener("click", () => {
+        const notifDropdown = document.getElementById("notifDropdown");
+        if (notifDropdown) notifDropdown.classList.remove("show");
+      });
+      // 賣票／買票／預約
+      function requireLogin(fn) {
+        if (!localStorage.getItem("access_token")) {
+          alert("您尚未登入，請先登入");
+          location.href = "/";
+          return;
+        }
+        fn();
+      }
+      // 查詢上架商品
+      async function fetchTickets() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          alert("請先登入");
+          return (window.location.href = "/");
+        }
+        try {
+          const res = await fetch("/api/sellerTickets", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+          if (res.status === 401) {
+            localStorage.removeItem("access_token");
+            alert("登入已過期，請重新登入");
+            return (window.location.href = "/");
+          }
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const tickets = await res.json();
+          renderTickets(tickets);
+        } catch (err) {
+          console.error("查詢上架紀錄失敗:", err);
+          const ticketList = document.getElementById("ticketList");
+          ticketList.innerHTML = "<div>載入失敗，請稍後再試</div>";
+        }
+      }
+      // 下架商品
+      async function removeTicket(ticketId) {
+        if (!confirm("確定要下架此商品嗎？")) {
+          return;
+        }
+        const token = localStorage.getItem("access_token");
+        const overlay = document.getElementById("loadingOverlay");
+        document.querySelector(".loading-spinner").style.display = "block";
+        overlay.style.display = "flex";
+        const button = document.querySelector(
+          `button.btn-remove[onclick*='${ticketId}']`
+        );
+        if (button) {
+          button.disabled = true;
+          button.innerText = "處理中…";
+        }
+        try {
+          const res = await fetch("/api/remove_ticket", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ ticket_id: ticketId }),
+          });
+          if (res.status === 401) {
+            localStorage.removeItem("access_token");
+            alert("身份驗證失敗，請重新登入");
+            overlay.style.display = "none";
+            if (button) {
+              button.disabled = false;
+              button.innerText = "下架商品";
+            }
+            return (window.location.href = "/");
+          }
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "下架失敗");
+          overlay.style.display = "none";
+          alert("商品已成功下架");
+          await fetchTickets();
+        } catch (err) {
+          overlay.style.display = "none";
+          if (button) {
+            button.disabled = false;
+            button.innerText = "下架商品";
+          }
+          console.error("下架失敗:", err);
+          alert(err.message || "下架失敗，請稍後再試");
+        }
+      }
+      function formatDateTime(dt) {
+        if (!dt) return "--";
+        const date = new Date(dt);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(date.getDate()).padStart(2, "0")} ${String(
+          date.getHours()
+        ).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+      function renderTickets(tickets) {
+        const ticketList = document.getElementById("ticketList");
+        ticketList.innerHTML = "";
+        if (!tickets || tickets.length === 0) {
+          ticketList.innerHTML = "<div>目前沒有上架紀錄</div>";
+          return;
+        }
+        tickets.forEach((t) => {
+          const orderId = t.order_id ? `#${t.order_id}` : "尚未成立訂單";
+          let removeAction = "";
+          if (t.is_removed) {
+            removeAction = "已下架";
+          } else if (t.order_id) {
+            removeAction = "訂單已成立，不可下架";
+          } else {
+            removeAction = `<button class="btn-remove" onclick="removeTicket(${t.ticket_id})">下架商品</button>`;
+          }
+          const block = document.createElement("div");
+          block.className = "order-block";
+          block.innerHTML = `
+            <div class="order-main">
+              <div class="order-row">
+                <span>座位編號：${t.seat_number}</span>
+                <span>${removeAction}</span>
+              </div>
+              <div class="order-row main-info">
+                <span>${t.team_away} vs ${t.team_home}</span>
+                <span>${t.game_date} ${t.start_time}</span>
+                <span>NT$${t.price}</span>
+              </div>
+            </div>
+            <div class="order-details" id="details-${t.ticket_id}">
+              <div class="order-row">
+                <span>訂單編號：${orderId}</span>
+                <span>商品上架時間：${formatDateTime(t.created_at)}</span>
+              </div>
+            </div>
+            <button class="btn-details" onclick="toggleDetails(${
+              t.ticket_id
+            })">查看明細</button>
+          `;
+          ticketList.appendChild(block);
+        });
+      }
+      function toggleDetails(id) {
+        const details = document.getElementById(`details-${id}`);
+        details.classList.toggle("show");
+        const btn = details.parentElement.querySelector(".btn-details");
+        btn.textContent = details.classList.contains("show")
+          ? "收起明細"
+          : "查看明細";
+      }
+      // 進度條動畫
+      function initLoadingBar() {
+        const loadingBar = document.getElementById("loading-bar");
+        let progress = 0;
+        const interval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            loadingBar.style.width = `${progress}%`;
+          }
+        }, 200);
+        window.onload = () => {
+          clearInterval(interval);
+          progress = 100;
+          loadingBar.style.width = "100%";
+          setTimeout(() => {
+            loadingBar.style.opacity = "0";
+            setTimeout(() => {
+              loadingBar.style.display = "none";
+            }, 300);
+          }, 500);
+        };
+      }
+      // 初始化
+      document.addEventListener("DOMContentLoaded", async () => {
+        await fetchTickets();
+        await fetchAuthStatus();
+        initLoadingBar();
+      });
+    </script>
+  </body>
+</html>

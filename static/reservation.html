@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>我要賣票 | Pitch-A-Seat</title>
+    <title>我要預約 | Pitch-A-Seat</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
       rel="stylesheet"
@@ -208,7 +208,7 @@
       }
       .nav-action-btn.active {
         position: relative;
-        background: #8b1e3f;
+        background: #8b1e3f; /* 表示目前頁面 */
         font-weight: bold;
       }
       /* 主要內容：上下堆疊 */
@@ -338,18 +338,22 @@
         display: flex;
         justify-content: space-between;
       }
-      /* 禁用日期樣式 */
+      /* 禁用日期的樣式 */
       .day.disabled {
         background: #333;
         opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .day.disabled .event {
-        cursor: not-allowed;
         pointer-events: none;
       }
       .day.disabled .date-num {
         color: #888;
+      }
+      .day.disabled .event {
+        background: #444;
+        cursor: not-allowed;
+        border-color: #555;
+      }
+      .day.disabled .event div {
+        color: #aaa;
       }
       /* 表單區 */
       .form-wrapper {
@@ -463,17 +467,101 @@
       button:hover {
         background-color: #8b1e3f;
       }
-      #date,
-      #time,
-      #venue,
-      #teams12,
-      #gameNumber,
-      #quantity,
-      #seat_number,
-      #seat_area,
-      #price,
-      #note,
-      #file {
+      .btn-reset {
+        background: #dc3545;
+      }
+      .checkbox-group,
+      .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 3px;
+        margin-bottom: 15px;
+      }
+      .checkbox-group label,
+      .radio-group label {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        max-width: 380px;
+        color: #ddd;
+        font-weight: normal;
+      }
+      .checkbox-group input,
+      .radio-group input {
+        margin-right: 10px;
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+      .checkbox-group input[type="checkbox"]:checked,
+      .radio-group input[type="radio"]:checked {
+        background-color: #8b1e3f;
+        border-color: #8b1e3f;
+      }
+      .checkbox-group input[type="checkbox"],
+      .radio-group input[type="radio"] {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        width: 15px;
+        height: 15px;
+        border: 2px solid #555;
+        border-radius: 4px;
+        background-color: #333;
+        cursor: pointer;
+        position: relative;
+      }
+      .radio-group input[type="radio"] {
+        border-radius: 50%;
+      }
+      .checkbox-group input[type="checkbox"]:checked::after {
+        content: "✔";
+        color: #fff;
+        font-size: 14px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .radio-group input[type="radio"]:checked::after {
+        content: "";
+        width: 8px;
+        height: 8px;
+        background-color: #fff;
+        border-radius: 50%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .checkbox-group input[type="checkbox"]:disabled,
+      .radio-group input[type="radio"]:disabled {
+        background-color: #444;
+        border-color: #444;
+        cursor: not-allowed;
+      }
+      .checkbox-group input[type="checkbox"]:disabled:checked::after,
+      .radio-group input[type="radio"]:disabled:checked::after {
+        opacity: 0.5;
+      }
+      .preview {
+        background: #2f2f2f;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        color: #ddd;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      #resDate,
+      #resTime,
+      #resVenue,
+      #resTeams,
+      #resGameNumber,
+      .checkbox-group,
+      .radio-group {
         margin-top: 3px;
         margin-bottom: 15px;
       }
@@ -570,12 +658,12 @@
         <span class="message" id="successMessage"></span>
       </div>
     </div>
-    <!-- Token 檢查 -->
+    <!-- 驗證 token -->
     <script>
       const token = localStorage.getItem("access_token");
       if (!token) {
-        alert("您尚未登入，請先登入");
-        window.location.href = "/";
+        alert("請先登入");
+        location.href = "/";
       }
     </script>
     <!-- 導覽列 -->
@@ -585,7 +673,7 @@
           <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
           <div class="nav-buttons">
             <button
-              class="nav-action-btn active"
+              class="nav-action-btn"
               onclick="requireLogin(() => location.href='/sell')"
             >
               賣 票
@@ -597,7 +685,7 @@
               買 票
             </button>
             <button
-              class="nav-action-btn"
+              class="nav-action-btn active"
               onclick="requireLogin(() => location.href='/reservation')"
             >
               預 約
@@ -616,88 +704,117 @@
         </div>
       </div>
     </header>
-    <!-- 主要內容：上月曆、下表單 -->
     <div class="main-content">
       <!-- 月曆 -->
       <div class="calendar-wrapper">
         <div class="calendar-banner">SCHEDULE 賽程表</div>
         <div class="calendar-controls">
           <button id="prevMonth">←</button>
-          <div class="calendar-title" id="monthLabel">2025年6月</div>
+          <div class="calendar-title" id="monthLabel"></div>
           <button id="nextMonth">→</button>
         </div>
         <div class="calendar" id="calendar"></div>
       </div>
-      <!-- 售票表單 -->
+      <!-- 預約表單 -->
       <div class="form-wrapper">
-        <h1>填寫賣票資訊</h1>
-        <p>** 請點擊日曆選擇你想賣票的比賽場次 **</p>
-        <form id="sellForm">
+        <h1>填寫預約條件</h1>
+        <p>** 請點擊日曆選擇你想預約的比賽場次 **</p>
+        <form id="reserveForm">
+          <input type="hidden" id="gameId" />
+          <!-- 自動帶入的場次資訊 -->
           <div class="form-group">
-            <label for="date">日期</label>
-            <input type="date" id="date" required />
+            <label for="resDate">日期</label>
+            <input type="date" id="resDate" disabled />
           </div>
           <div class="form-group">
-            <label for="time">開賽時間</label>
-            <input type="time" id="time" step="300" required />
+            <label for="resTime">開賽時間</label>
+            <input type="time" id="resTime" disabled />
           </div>
           <div class="form-group">
-            <label for="venue">球場</label>
-            <select id="venue" required>
-              <option value="">請選擇</option>
-              <option>台北大巨蛋</option>
-              <option>新莊</option>
-              <option>天母</option>
-              <option>樂天桃園</option>
-              <option>洲際</option>
-              <option>斗六</option>
-              <option>嘉義市</option>
-              <option>台南</option>
-              <option>澄清湖</option>
-              <option>花蓮</option>
-              <option>台東</option>
-            </select>
+            <label for="resVenue">球場</label>
+            <input type="text" id="resVenue" disabled />
           </div>
           <div class="form-group">
-            <label>對戰球隊</label>
-            <div id="teams12" style="display: flex; gap: 10px">
-              <select id="team1" required>
-                <option value="">主場球隊</option>
-                <option>中信兄弟</option>
-                <option>富邦悍將</option>
-                <option>樂天桃猿</option>
-                <option>統一7-ELEVEn獅</option>
-                <option>味全龍</option>
-                <option>台鋼雄鷹</option>
-              </select>
-              <select id="team2" required>
-                <option value="">客場球隊</option>
-                <option>中信兄弟</option>
-                <option>富邦悍將</option>
-                <option>樂天桃猿</option>
-                <option>統一7-ELEVEn獅</option>
-                <option>味全龍</option>
-                <option>台鋼雄鷹</option>
-              </select>
+            <label for="resTeams">對戰球隊</label>
+            <input type="text" id="resTeams" disabled />
+          </div>
+          <div class="form-group">
+            <label for="resGameNumber">官方場次編號</label>
+            <input type="text" id="resGameNumber" disabled />
+          </div>
+          <!-- 價格範圍 -->
+          <div class="form-group">
+            <label>期望票價範圍（請至少選擇一項）*</label>
+            <div class="checkbox-group">
+              <label
+                ><input type="checkbox" id="price-none" checked />
+                無票價要求</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  class="price-range"
+                  value="0-400"
+                  disabled
+                />
+                0~400 元</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  class="price-range"
+                  value="401-699"
+                  disabled
+                />
+                401~699 元</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  class="price-range"
+                  value="700-999"
+                  disabled
+                />
+                700~999 元</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  class="price-range"
+                  value="1000-10000"
+                  disabled
+                />
+                1000 元以上</label
+              >
             </div>
           </div>
+          <!-- 座位選項 -->
           <div class="form-group">
-            <label>官方場次編號</label>
-            <input
-              type="text"
-              id="gameNumber"
-              disabled
-              placeholder="自動帶出"
-            />
+            <label>期望座位區域 *</label>
+            <div class="radio-group">
+              <label
+                ><input type="radio" name="seat" value="none" checked />
+                無座位要求</label
+              >
+              <label
+                ><input type="radio" name="seat" value="內野" />
+                只想坐內野</label
+              >
+              <label
+                ><input type="radio" name="seat" value="外野" />
+                只想坐外野</label
+              >
+            </div>
           </div>
-          <div class="form-group">
-            <label for="quantity">張數</label>
-            <input type="number" id="quantity" min="1" value="1" required />
+          <!-- 條件預覽 & 重設 -->
+          <div class="preview" id="preview">
+            您目前的條件：<br />
+            — 票價：<span id="pvPrice">無票價要求</span><br />
+            — 座位：<span id="pvSeat">無座位要求</span>
           </div>
-          <div class="dynamic-fields" id="ticketContainer">
-            <!-- 動態生成的票券欄位 -->
-          </div>
-          <button type="submit">送出</button>
+          <button type="button" class="btn-reset" id="btnReset">重設</button>
+          <!-- 送出 -->
+          <button type="submit">送出預約</button>
         </form>
       </div>
     </div>
@@ -839,71 +956,9 @@
         }
         fn();
       }
-      // 欄位啟/禁用邏輯
-      function disableForm() {
-        ["date", "time", "venue", "team1", "team2", "quantity"].forEach(
-          (id) => {
-            const el = document.getElementById(id);
-            el.value = "";
-            el.disabled = true;
-          }
-        );
-        document.getElementById("gameNumber").value = "";
-        document.getElementById("gameNumber").disabled = true;
-        document.querySelector("button[type=submit]").disabled = true;
-        updateTicketFields();
-      }
-      function enableForm() {
-        ["date", "time", "venue", "team1", "team2", "quantity"].forEach(
-          (id) => {
-            document.getElementById(id).disabled = false;
-          }
-        );
-        document.querySelector("button[type=submit]").disabled = false;
-      }
-      // 動態產生座位欄位
-      const quantityInput = document.getElementById("quantity");
-      const container = document.getElementById("ticketContainer");
-      function createTicketFields(i) {
-        return `
-          <div class="ticket-block">
-            <div class="form-group">
-              <label>座位編號（票 ${i + 1}） *</label>
-              <input id="seat_number" type="text" name="seat_number_${i}" required />
-            </div>
-            <div class="form-group">
-              <label>座位區域 *</label>
-              <select id="seat_area" name="seat_area_${i}" required>
-                <option value="">請選擇</option>
-                <option>內野</option>
-                <option>外野</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>單張票價 *</label>
-              <input id="price" type="number" name="price_${i}" min="0" required />
-            </div>
-            <div class="form-group">
-              <label>備註</label>
-              <textarea id="note" name="note_${i}" rows="2"></textarea>
-            </div>
-            <div class="form-group">
-              <label>上傳票券照片 *</label>
-              <input id="file" type="file" name="image_${i}" multiple />
-            </div>
-          </div>`;
-      }
-      function updateTicketFields() {
-        const qty = parseInt(quantityInput.value) || 0;
-        container.innerHTML = "";
-        for (let i = 0; i < qty; i++) {
-          container.innerHTML += createTicketFields(i);
-        }
-      }
-      quantityInput.addEventListener("change", updateTicketFields);
-      // 月曆與選取
-      const calendar = document.getElementById("calendar");
-      const monthLabel = document.getElementById("monthLabel");
+      // 月曆（帶入場次資訊）
+      const calendar = document.getElementById("calendar"),
+        monthLabel = document.getElementById("monthLabel");
       let now = new Date(),
         cy = now.getFullYear(),
         cm = now.getMonth() + 1;
@@ -912,17 +967,23 @@
         calendar.innerHTML = "";
         monthLabel.textContent = `${year}年${month}月`;
         ["日", "一", "二", "三", "四", "五", "六"].forEach((d) => {
-          let w = document.createElement("div");
+          const w = document.createElement("div");
           w.className = "weekday";
           w.textContent = d;
           calendar.appendChild(w);
         });
-        const firstDay = new Date(year, month - 1, 1).getDay();
-        for (let i = 0; i < firstDay; i++) {
-          let blank = document.createElement("div");
-          blank.className = "day";
-          calendar.appendChild(blank);
+        for (
+          let i = 0, fd = new Date(year, month - 1, 1).getDay();
+          i < fd;
+          i++
+        ) {
+          const b = document.createElement("div");
+          b.className = "day";
+          calendar.appendChild(b);
         }
+        // 取得當前日期（重設為當天 00:00）
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         fetch(`/api/schedule?year=${year}&month=${month}`)
           .then((r) => r.json())
           .then((games) => {
@@ -932,97 +993,153 @@
               (map[d] || (map[d] = [])).push(g);
             });
             const dim = new Date(year, month, 0).getDate();
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // 將時間設為當天 00:00
-            const currentDate = new Date(year, month - 1, 1);
             for (let d = 1; d <= dim; d++) {
-              let dayBox = document.createElement("div");
-              dayBox.className = "day";
-              const currentDay = new Date(year, month - 1, d);
-              // 檢查是否為過去日期（包括今天）
-              if (currentDay < today) {
-                dayBox.classList.add("disabled");
+              const box = document.createElement("div");
+              box.className = "day";
+              // 檢查是否為當天或過去日期
+              const currentDate = new Date(year, month - 1, d);
+              if (currentDate <= today) {
+                box.classList.add("disabled");
               }
-              let lbl = document.createElement("div");
-              lbl.className = "date-num";
-              lbl.textContent = d;
-              dayBox.appendChild(lbl);
-              if (map[d]) {
-                map[d].forEach((g) => {
-                  let e = document.createElement("div");
-                  e.className = "event";
-                  e.innerHTML = `
-                    <div class="teams">${g.team_away} vs ${g.team_home}</div>
-                    <div class="game-number">${g.game_number}</div>
-                    <div class="stadium-time"><span class="stadium">${
-                      g.stadium
-                    }</span><span class="time">${g.start_time.slice(
-                    0,
-                    5
-                  )}</span></div>`;
-                  e._data = {
-                    game_id: g.id,
-                    date: g.game_date,
-                    time: g.start_time.slice(0, 5),
-                    stadium: g.stadium,
-                    team_home: g.team_home,
-                    team_away: g.team_away,
-                    game_number: g.game_number,
-                  };
-                  // 只對非禁用日期添加點擊事件
-                  if (!dayBox.classList.contains("disabled")) {
-                    e.addEventListener("click", () => {
-                      document
-                        .querySelectorAll(".event.selected")
-                        .forEach((o) => o.classList.remove("selected"));
-                      e.classList.add("selected");
-                      selectedGame = e._data;
-                      document.getElementById("date").value = selectedGame.date;
-                      document.getElementById("time").value = selectedGame.time;
-                      document.getElementById("venue").value =
-                        selectedGame.stadium;
-                      document.getElementById("team1").value =
-                        selectedGame.team_home;
-                      document.getElementById("team2").value =
-                        selectedGame.team_away;
-                      document.getElementById("gameNumber").value =
-                        selectedGame.game_number;
-                      enableForm();
-                      updateTicketFields();
-                      document
-                        .querySelector(".form-wrapper")
-                        .scrollIntoView({ behavior: "smooth", block: "start" });
-                    });
-                  }
-                  dayBox.appendChild(e);
-                });
-              }
-              calendar.appendChild(dayBox);
+              const num = document.createElement("div");
+              num.className = "date-num";
+              num.textContent = d;
+              box.appendChild(num);
+              (map[d] || []).forEach((g) => {
+                const e = document.createElement("div");
+                e.className = "event";
+                e.innerHTML = `<div class="teams">${g.team_away} vs ${
+                  g.team_home
+                }</div>
+                               <div class="game-number">${g.game_number}</div>
+                               <div class="stadium-time"><span class="stadium">${
+                                 g.stadium
+                               }</span><span class="time">${g.start_time.slice(
+                  0,
+                  5
+                )}</span></div>`;
+                e._data = g;
+                // 只為未禁用的日期添加點擊事件
+                if (!box.classList.contains("disabled")) {
+                  e.addEventListener("click", () => {
+                    document
+                      .querySelectorAll(".event.selected")
+                      .forEach((x) => x.classList.remove("selected"));
+                    e.classList.add("selected");
+                    selectedGame = g;
+                    document.getElementById("gameId").value = g.id;
+                    document.getElementById("resDate").value = g.game_date;
+                    document.getElementById("resTime").value =
+                      g.start_time.slice(0, 5);
+                    document.getElementById("resVenue").value = g.stadium;
+                    document.getElementById(
+                      "resTeams"
+                    ).value = `${g.team_away} vs ${g.team_home}`;
+                    document.getElementById("resGameNumber").value =
+                      g.game_number;
+                    document.querySelector(
+                      "#reserveForm button[type=submit]"
+                    ).disabled = false;
+                    const formWrapper = document.querySelector(".form-wrapper");
+                    if (formWrapper) {
+                      const rect = formWrapper.getBoundingClientRect();
+                      const scrollTop =
+                        window.pageYOffset ||
+                        document.documentElement.scrollTop;
+                      window.scrollTo({
+                        top: scrollTop + rect.top - 70,
+                        behavior: "smooth",
+                      });
+                    }
+                  });
+                }
+                box.appendChild(e);
+              });
+              calendar.appendChild(box);
             }
           });
       }
-      document.getElementById("prevMonth").addEventListener("click", () => {
+      // 檢查午夜並重新渲染
+      function checkMidnight() {
+        const now = new Date();
+        const timeToMidnight =
+          new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
+        setTimeout(() => {
+          renderCalendar(cy, cm);
+          checkMidnight();
+        }, timeToMidnight);
+      }
+      document.getElementById("prevMonth").onclick = () => {
         cm--;
         if (cm === 0) {
           cm = 12;
           cy--;
         }
         renderCalendar(cy, cm);
-      });
-      document.getElementById("nextMonth").addEventListener("click", () => {
+      };
+      document.getElementById("nextMonth").onclick = () => {
         cm++;
         if (cm === 13) {
           cm = 1;
           cy++;
         }
         renderCalendar(cy, cm);
+      };
+      // 價格互斥 & 座位預覽
+      const cbNone = document.getElementById("price-none"),
+        cbs = Array.from(document.querySelectorAll(".price-range")),
+        radios = Array.from(document.querySelectorAll("input[name='seat']"));
+      function updatePreview() {
+        const prices = cbNone.checked
+          ? ["無票價要求"]
+          : cbs
+              .filter((x) => x.checked)
+              .map((x) => x.nextSibling.textContent.trim());
+        const seat = radios
+          .find((r) => r.checked)
+          .nextSibling.textContent.trim();
+        document.getElementById("pvPrice").textContent =
+          prices.join("、") || "無";
+        document.getElementById("pvSeat").textContent = seat;
+      }
+      cbNone.onchange = () => {
+        if (cbNone.checked) {
+          cbs.forEach((x) => {
+            x.checked = false;
+            x.disabled = true;
+          });
+        } else {
+          cbs.forEach((x) => (x.disabled = false));
+        }
+        updatePreview();
+      };
+      cbs.forEach((cb) => {
+        cb.onchange = () => {
+          if (cbs.some((x) => x.checked)) {
+            cbNone.checked = false;
+            cbNone.disabled = true;
+          } else {
+            cbNone.disabled = false;
+          }
+          updatePreview();
+        };
       });
+      radios.forEach((r) => (r.onchange = updatePreview));
+      document.getElementById("btnReset").onclick = () => {
+        cbNone.checked = true;
+        cbs.forEach((x) => {
+          x.checked = false;
+          x.disabled = true;
+        });
+        radios[0].checked = true;
+        updatePreview();
+      };
       // 顯示成功提示視窗
-      function showSuccessPopup(count) {
+      function showSuccessPopup(gameNumber) {
         const popup = document.getElementById("successPopup");
         const message = document.getElementById("successMessage");
         const overlay = document.getElementById("loadingOverlay");
-        message.textContent = `成功上架 ${count} 張票！`;
+        message.textContent = `編號 ${gameNumber} 賽事預約成功！`;
         document.querySelector(".loading-spinner").style.display = "none";
         popup.style.display = "flex";
         setTimeout(() => {
@@ -1033,96 +1150,55 @@
           setTimeout(() => {
             popup.style.display = "none";
             overlay.style.display = "none";
-            disableForm();
-            renderCalendar(cy, cm);
-            window.location.href = "/member_launch";
+            window.location.href = "/member_reservation";
           }, 400);
         }, 3000);
       }
-      // 送出表單
-      document
-        .getElementById("sellForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          if (!selectedGame) {
-            alert("請先於月曆點選賽程");
-            return;
-          }
-          document.getElementById("loadingOverlay").style.display = "flex";
-          document.querySelector(".loading-spinner").style.display = "block";
-          document.querySelector("button[type=submit]").disabled = true;
-          const formData = new FormData();
-          formData.append("game_id", selectedGame.game_id);
-          const qty = parseInt(document.getElementById("quantity").value);
-          const tickets = [];
-          for (let i = 0; i < qty; i++) {
-            const seatNumber = document.querySelector(
-              `[name=seat_number_${i}]`
-            ).value;
-            const seatArea = document.querySelector(
-              `[name=seat_area_${i}]`
-            ).value;
-            const price = document.querySelector(`[name=price_${i}]`).value;
-            const note = document.querySelector(`[name=note_${i}]`).value;
-            tickets.push({
-              seat_number: seatNumber,
-              seat_area: seatArea,
-              price: parseInt(price),
-              note,
-            });
-            const files = document.querySelector(`[name=image_${i}]`).files;
-            if (files.length) {
-              for (const file of files) {
-                const ext = file.name.split(".").pop().toLowerCase();
-                const sizeMB = file.size / 1024 / 1024;
-                if (!["jpg", "jpeg", "png"].includes(ext)) {
-                  alert(`圖片格式錯誤：票 ${i + 1} 包含非 jpg/png`);
-                  document.getElementById("loadingOverlay").style.display =
-                    "none";
-                  document.querySelector(
-                    "button[type=submit]"
-                  ).disabled = false;
-                  return;
-                }
-                if (sizeMB > 5) {
-                  alert(`圖片過大：票 ${i + 1} 有圖片超過 5MB`);
-                  document.getElementById("loadingOverlay").style.display =
-                    "none";
-                  document.querySelector(
-                    "button[type=submit]"
-                  ).disabled = false;
-                  return;
-                }
-                formData.append(
-                  "images",
-                  new File([file], `${i}_${file.name}`, { type: file.type })
-                );
-              }
-            }
-          }
-          formData.append("tickets", JSON.stringify(tickets));
-          try {
-            const token = localStorage.getItem("access_token");
-            const res = await fetch("/api/sell_tickets", {
-              method: "POST",
-              headers: { Authorization: "Bearer " + token },
-              body: formData,
-            });
-            const result = await res.json();
-            document.querySelector("button[type=submit]").disabled = false;
-            if (res.ok) {
-              showSuccessPopup(result.count);
-            } else {
-              document.getElementById("loadingOverlay").style.display = "none";
-              alert(`錯誤：${result.detail || "未知"}`);
-            }
-          } catch (err) {
-            console.error(err);
+      // 送出預約
+      document.getElementById("reserveForm").onsubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedGame) {
+          alert("請先於月曆點選場次");
+          return;
+        }
+        if (!cbNone.checked && !cbs.some((x) => x.checked)) {
+          alert("請至少選擇一個價格範圍");
+          return;
+        }
+        document.getElementById("loadingOverlay").style.display = "flex";
+        document.querySelector(".loading-spinner").style.display = "block";
+        document.querySelector("button[type=submit]").disabled = true;
+        const priceList = cbNone.checked
+          ? ["0-0"]
+          : cbs.filter((x) => x.checked).map((x) => x.value);
+        const seat = radios.find((r) => r.checked).value;
+        try {
+          const res = await fetch("/api/reservations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              game_id: selectedGame.id,
+              price_ranges: priceList,
+              seat_area: seat,
+            }),
+          });
+          const j = await res.json();
+          document.querySelector("button[type=submit]").disabled = false;
+          if (res.ok) {
+            showSuccessPopup(selectedGame.game_number);
+          } else {
             document.getElementById("loadingOverlay").style.display = "none";
-            document.querySelector("button[type=submit]").disabled = false;
-            alert("送出失敗，請稍候再試");
+            alert("錯誤：" + (j.detail || "未知"));
           }
-        });
+        } catch {
+          document.getElementById("loadingOverlay").style.display = "none";
+          document.querySelector("button[type=submit]").disabled = false;
+          alert("送出失敗");
+        }
+      };
       // 進度條動畫
       function initLoadingBar() {
         const loadingBar = document.getElementById("loading-bar");
@@ -1146,12 +1222,16 @@
           }, 500);
         };
       }
-      // 初始化
+      // 初始設定
       document.addEventListener("DOMContentLoaded", () => {
-        disableForm();
         renderCalendar(cy, cm);
+        updatePreview();
+        document.querySelector(
+          "#reserveForm button[type=submit]"
+        ).disabled = true;
         fetchAuthStatus();
         initLoadingBar();
+        checkMidnight(); // 啟動午夜檢查
       });
     </script>
   </body>

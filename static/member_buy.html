@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的購買 | Pitch-A-Seat</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/x-icon" href="/static/image/favicon.png" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #f5f5f5;
+        padding-top: 60px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      /* 進度條樣式 */
+      #loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background-color: #8b1e3f;
+        z-index: 9999;
+        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      }
+      /* 導覽列 */
+      .navigation {
+        display: flex;
+        justify-content: center;
+        height: 80px;
+        padding: 10px 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #1f2a2a;
+        z-index: 100;
+      }
+      .navlist {
+        display: flex;
+        justify-content: space-between;
+        width: 1200px;
+        align-items: center;
+      }
+      .webtitle {
+        font-weight: 700;
+        font-size: 30px;
+        color: #fff;
+        cursor: pointer;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        position: relative;
+      }
+      .btn-link {
+        font-size: 16px;
+        color: #fff;
+        cursor: pointer;
+        background: none;
+        border: none;
+      }
+      .user-dropdown {
+        cursor: pointer;
+        user-select: none;
+        color: #fff;
+      }
+      .user-dropdown::after {
+        content: "▼";
+        font-size: 8px;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+      .dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        background: #0f1414;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        min-width: 150px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 200;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .dropdown-menu.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .dropdown-menu li {
+        list-style: none;
+        padding: 12px 15px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
+      }
+      .dropdown-menu li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+      @keyframes rainbowShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+      .notifications {
+        cursor: pointer;
+        position: relative;
+      }
+      .notifications img {
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+      }
+      .notifications .badge {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        background: #d32f2f;
+        color: #fff;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+      }
+      .notif-dropdown {
+        position: absolute;
+        right: 0;
+        top: 120%;
+        width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+        background: #0f1414;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        display: none;
+        z-index: 150;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .notif-dropdown.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .notif-dropdown ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .notif-dropdown li {
+        padding: 12px 15px;
+        border-bottom: 1px solid #2d3737;
+        font-size: 14px;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.5s ease, color 0.3s ease;
+      }
+      .notif-dropdown li:hover {
+        background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
+        background-size: 300% 300%;
+        animation: rainbowShift 3s ease infinite;
+        color: white;
+      }
+      /* 導覽列按鈕 */
+      .nav-buttons {
+        display: flex;
+        gap: 27px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .nav-action-btn {
+        background: #1f2a2a;
+        color: #fff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.8s;
+      }
+      .nav-action-btn:hover {
+        background: #e53935;
+      }
+      /* 訂單區塊樣式 */
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        flex: 1;
+        width: 100%;
+      }
+      .section-title {
+        margin-top: 30px;
+        font-size: 20px;
+        font-weight: bold;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 5px;
+      }
+      .order-block {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin: 15px 0;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 100%;
+      }
+      .order-main {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .order-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+      }
+
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .status-group {
+        display: flex;
+        gap: 70px; /* 狀態間距 */
+      }
+      .actions {
+        margin-left: auto; /* 確保操作按鈕靠右 */
+      }
+
+      .order-row.rating-row {
+        justify-content: flex-start;
+      }
+
+      .order-details .order-row.details-row-1 {
+        justify-content: space-between;
+      }
+
+      .order-details .order-row.details-row-2 {
+        justify-content: flex-start;
+        gap: 50px; /* 時間間距 */
+      }
+
+      .btn-details {
+        display: block;
+        margin-top: 25px;
+        margin-bottom: 15px;
+        margin-left: auto; /* 置中並與上下內容保持間距 */
+        margin-right: auto;
+      }
+      .order-row.main-info {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+      }
+      .status-success {
+        color: green;
+        font-weight: bold;
+      }
+      .status-failed {
+        color: #dc3545;
+        font-weight: bold;
+      }
+      .status-shipped,
+      .status-paid {
+        color: #007bff;
+        font-weight: bold;
+      }
+      .status-na {
+        color: #6c757d;
+        font-weight: bold;
+      }
+      .btn-pay {
+        background-color: #ffc107;
+        color: #fff;
+        margin: 0 4px;
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn-rate {
+        background-color: #28a745;
+        color: #fff;
+        margin: 0 4px;
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn-details {
+        background-color: #6c757d;
+        color: #fff;
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .rating-score {
+        color: #b39108;
+        font-weight: bold;
+        font-size: 16px;
+      }
+      .order-details {
+        display: none;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f9f9f9;
+        border: 1px solid #eee;
+        border-radius: 4px;
+      }
+      .order-details.show {
+        display: block;
+      }
+      /* 圖片彈出視窗樣式 */
+      .image-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        z-index: 1200;
+        display: none;
+        max-width: 60vw;
+        max-height: 60vh;
+        overflow: auto;
+      }
+      .image-popup.show {
+        display: block;
+      }
+      .image-popup img {
+        max-width: 100%;
+        max-height: 53.33vh;
+        border-radius: 4px;
+      }
+      .image-popup .close-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 20px;
+        color: #333;
+        cursor: pointer;
+        background: none;
+        z-index: 1300;
+        border: none;
+      }
+      /* 載入動畫樣式 */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #8b1e3f;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* 成功提示彈出式視窗 */
+      .success-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -70%) scale(0.95);
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        z-index: 1100;
+        display: none;
+        width: 300px;
+        min-height: 150px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .success-popup.show {
+        display: flex;
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      .success-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        text-align: center;
+      }
+      .success-popup .checkmark {
+        font-size: 30px;
+        color: #28a745;
+      }
+      .success-popup .message {
+        font-size: 25px;
+        color: #333;
+        line-height: 1.8;
+      }
+      /* 評分彈出式視窗 */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+        z-index: 300;
+      }
+      .modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 400px;
+        text-align: center;
+      }
+      .modal-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .modal-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 15px;
+      }
+      .stars {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .star {
+        font-size: 30px;
+        cursor: pointer;
+        color: #ccc;
+      }
+      .star.filled {
+        color: #f1c40f;
+        font-size: 30px;
+      }
+      .btn-confirm {
+        background-color: #007bff;
+        color: #fff;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn-confirm:hover {
+        background-color: #0056b3;
+      }
+      /* 區塊7：Footer */
+      #footer {
+        background: #0f1414;
+        padding: 20px 0;
+        text-align: center;
+        color: #f5ede4;
+        font-size: 14px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 進度條 -->
+    <div id="loading-bar" aria-hidden="true"></div>
+    <!-- 載入動畫 -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner"></div>
+    </div>
+    <!-- 成功提示彈出式視窗 -->
+    <div class="success-popup" id="successPopup">
+      <div class="success-content">
+        <span class="checkmark">✔</span>
+        <span class="message" id="successMessage"></span>
+      </div>
+    </div>
+    <!-- 驗證 token -->
+    <script>
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        alert("請先登入");
+        window.location.href = "/";
+      }
+    </script>
+    <!-- 導覽列 -->
+    <header>
+      <div class="navigation">
+        <div class="navlist">
+          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+          <div class="nav-buttons">
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/sell')"
+            >
+              賣 票
+            </button>
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/buy')"
+            >
+              買 票
+            </button>
+            <button
+              class="nav-action-btn"
+              onclick="requireLogin(() => location.href='/reservation')"
+            >
+              預 約
+            </button>
+          </div>
+          <div class="nav-item" id="navRight">
+            <div class="notifications" id="notifBell">
+              <img src="/static/image/bell.png" alt="通知鈴鐺" />
+              <span class="badge" id="notifCount"></span>
+              <div class="notif-dropdown" id="notifDropdown">
+                <ul id="notifList"></ul>
+              </div>
+            </div>
+            <div id="userArea"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- 訂單區塊 -->
+    <div class="container">
+      <div class="section-title">我的購買</div>
+      <div id="orderList"></div>
+    </div>
+    <!-- 評分彈出式視窗 -->
+    <div class="modal" id="ratingModal">
+      <div class="modal-content">
+        <div class="modal-title">賣家評分</div>
+        <div class="modal-subtitle">
+          點一下星星幫賣家評分，你的評分是所有買家的最佳參考
+        </div>
+        <div class="stars" id="ratingStars">
+          <span class="star" data-value="1">★</span>
+          <span class="star" data-value="2">★</span>
+          <span class="star" data-value="3">★</span>
+          <span class="star" data-value="4">★</span>
+          <span class="star" data-value="5">★</span>
+        </div>
+        <button class="btn-confirm" id="confirmRating">確定</button>
+      </div>
+    </div>
+    <!-- 區塊7：Footer -->
+    <footer id="footer">
+      <div class="container">
+        <p>COPYRIGHT © 2025 Pitch-A-Seat</p>
+      </div>
+    </footer>
+    <script>
+      // 導覽列功能：通知鈴鐺與使用者下拉選單
+      async function fetchAuthStatus() {
+        const token = localStorage.getItem("access_token");
+        try {
+          const res = await fetch("/api/user/auth", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+          if (!res.ok) throw "";
+          const user = await res.json();
+          document.getElementById("navRight").innerHTML = `
+            <div class="notifications" id="notifBell">
+              <img src="/static/image/bell.png" alt="通知鈴鐺" />
+              <span class="badge" id="notifCount"></span>
+              <div class="notif-dropdown" id="notifDropdown">
+                <ul id="notifList"></ul>
+              </div>
+            </div>
+            <div id="userArea"></div>
+          `;
+          showUserDropdown(user);
+          loadNotifications();
+          document
+            .getElementById("notifBell")
+            .addEventListener("click", async (e) => {
+              e.stopPropagation();
+              const dd = document.getElementById("notifDropdown");
+              if (dd.classList.contains("show")) {
+                dd.classList.remove("show");
+              } else {
+                await fetch("/api/mark_notifications_read", {
+                  method: "POST",
+                  headers: {
+                    Authorization:
+                      "Bearer " + localStorage.getItem("access_token"),
+                  },
+                });
+                await loadNotifications();
+                dd.classList.add("show");
+              }
+              document.getElementById("dropdownMenu").classList.remove("show");
+            });
+        } catch {
+          localStorage.removeItem("access_token");
+          alert("登入已失效，請重新登入");
+          location.href = "/";
+        }
+      }
+      function showUserDropdown(user) {
+        document.getElementById("userArea").innerHTML = `
+          <div class="user-dropdown" id="userDropdown">
+            ${user.name}
+            <ul class="dropdown-menu" id="dropdownMenu">
+              <li id="gotoProfile">個人資料</li>
+              <li id="gotoSell">我的售票</li>
+              <li id="gotoBuy">我的購買</li>
+              <li id="gotoReservation">我的預約</li>
+              <li id="gotoLaunch">我的上架紀錄</li>
+              <li id="doLogout">登出</li>
+            </ul>
+          </div>`;
+        const dd = document.getElementById("userDropdown"),
+          menu = document.getElementById("dropdownMenu");
+        dd.addEventListener("click", (e) => {
+          menu.classList.toggle("show");
+          document.getElementById("notifDropdown").classList.remove("show");
+          e.stopPropagation();
+        });
+        document.addEventListener("click", (e) => {
+          if (!dd.contains(e.target)) menu.classList.remove("show");
+        });
+        document
+          .getElementById("gotoProfile")
+          .addEventListener("click", () => (location.href = "/member_profile"));
+        document
+          .getElementById("gotoSell")
+          .addEventListener("click", () => (location.href = "/member_sell"));
+        document
+          .getElementById("gotoBuy")
+          .addEventListener("click", () => (location.href = "/member_buy"));
+        document
+          .getElementById("gotoReservation")
+          .addEventListener(
+            "click",
+            () => (location.href = "/member_reservation")
+          );
+        document
+          .getElementById("gotoLaunch")
+          .addEventListener("click", () => (location.href = "/member_launch"));
+        document.getElementById("doLogout").addEventListener("click", () => {
+          localStorage.removeItem("access_token");
+          location.href = "/";
+        });
+      }
+      async function loadNotifications() {
+        const token = localStorage.getItem("access_token");
+        if (!token) return;
+        try {
+          const res = await fetch("/api/notifications", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (!res.ok) return;
+          const notes = await res.json();
+          const ul = document.getElementById("notifList");
+          ul.innerHTML = "";
+          let unread = 0;
+          notes.forEach((n) => {
+            const li = document.createElement("li");
+            li.textContent = n.message;
+            li.onclick = () => (location.href = n.url);
+            ul.appendChild(li);
+            if (!n.is_read) unread++;
+          });
+          document.getElementById("notifCount").textContent = unread;
+        } catch {}
+      }
+      document.addEventListener("click", () => {
+        const notifDropdown = document.getElementById("notifDropdown");
+        if (notifDropdown) notifDropdown.classList.remove("show");
+      });
+      // 賣票／買票／預約
+      function requireLogin(fn) {
+        if (!localStorage.getItem("access_token")) {
+          alert("您尚未登入，請先登入");
+          location.href = "/";
+          return;
+        }
+        fn();
+      }
+      // 訂單功能
+      let memberId;
+      let selectedRating = 5;
+      let currentOrderId = "";
+      async function fetchOrders() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          alert("請先登入");
+          return (window.location.href = "/");
+        }
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          memberId = parseInt(payload.id);
+        } catch {
+          alert("Token 格式錯誤");
+          localStorage.removeItem("access_token");
+          return (window.location.href = "/");
+        }
+        try {
+          const res = await fetch("/api/buyerOrders", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+          if (res.status === 401) {
+            localStorage.removeItem("access_token");
+            alert("登入已過期");
+            return (window.location.href = "/");
+          }
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const orders = await res.json();
+          renderOrders(orders);
+        } catch (err) {
+          console.error("載入訂單失敗", err);
+          alert("載入訂單失敗，請稍後再試");
+        }
+      }
+      function formatDateTime(dt) {
+        if (!dt) return "--";
+        const date = new Date(dt);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(date.getDate()).padStart(2, "0")} ${String(
+          date.getHours()
+        ).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+      function renderOrders(orders) {
+        const orderList = document.getElementById("orderList");
+        orderList.innerHTML = "";
+        if (!orders || orders.length === 0) {
+          orderList.innerHTML = "<div>目前沒有訂單</div>";
+          return;
+        }
+        orders.forEach((o) => {
+          const isFailed = o.order_status === "媒合失敗";
+          const paymentStatus = isFailed ? "--" : o.payment_status;
+          const shipmentStatus = isFailed ? "--" : o.shipment_status;
+          const rating = o.seller_rating
+            ? `<span class="rating-score">${o.seller_rating.toFixed(1)}</span>`
+            : o.shipment_status === "已出貨"
+            ? "未評分"
+            : "--";
+          const note = o.note && o.note.trim() ? o.note : "無";
+          let imageLink = "無";
+          if (o.image_urls) {
+            let urls = o.image_urls;
+            if (typeof urls === "string") {
+              try {
+                urls = JSON.parse(urls);
+              } catch {
+                urls = [];
+              }
+            }
+            if (Array.isArray(urls) && urls.length > 0 && urls[0]) {
+              const escapedUrl = urls[0].replace(/'/g, "\\'");
+              imageLink = `<a href="#" onclick="showImagePopup('${escapedUrl}'); return false;">圖片</a>`;
+            }
+          }
+          const block = document.createElement("div");
+          block.className = "order-block";
+          block.innerHTML = `
+            <div class="order-main">
+              <div class="order-row status-row">
+                <div class="status-group">
+                  <span>媒合狀態：<span class="${
+                    o.order_status === "媒合成功"
+                      ? "status-success"
+                      : o.order_status === "媒合失敗"
+                      ? "status-failed"
+                      : ""
+                  }">${o.order_status}</span></span>
+                  <span>付款狀態：<span class="${
+                    isFailed
+                      ? "status-na"
+                      : o.payment_status === "已付款"
+                      ? "status-paid"
+                      : ""
+                  }">${paymentStatus}</span></span>
+                  <span>出貨狀態：<span class="${
+                    isFailed
+                      ? "status-na"
+                      : o.shipment_status === "已出貨"
+                      ? "status-shipped"
+                      : ""
+                  }">${shipmentStatus}</span></span>
+                </div>
+                <div class="actions"></div>
+              </div>
+              <div class="order-row rating-row">
+                <span>賣家評分：${rating}</span>
+              </div>
+              <div class="order-row main-info">
+                <span>${o.team_away} vs ${o.team_home}</span>
+                <span>${o.game_date} ${o.start_time}</span>
+                <span>NT$${o.price}</span>
+              </div>
+            </div>
+            <div class="order-details" id="details-${o.order_id}">
+              <div class="order-row details-row-1">
+                <span>訂單編號：#${o.order_id}</span>
+                <span>訂單成立時間：${formatDateTime(o.created_at)}</span>
+              </div>
+              <div class="order-row">
+                <span>付款時間：${formatDateTime(o.paid_at)}</span>
+                <span>出貨時間：${formatDateTime(o.shipped_at)}</span>
+              </div>
+              <div class="order-row">
+                <span>商品備註：${note}</span>
+              </div>
+              <div class="order-row">
+                <span>票券圖片：${imageLink}</span>
+              </div>
+            </div>
+            <button class="btn-details" onclick="toggleDetails(${
+              o.order_id
+            })">查看詳細</button>
+          `;
+          const actions = block.querySelector(".actions");
+          if (o.order_status === "媒合成功" && o.payment_status === "未付款") {
+            actions.appendChild(
+              btn("付款", "btn-pay", () => {
+                window.location.href = `/payment?order_id=${o.order_id}&member_id=${memberId}`;
+              })
+            );
+          }
+          if (o.shipment_status === "已出貨" && !o.seller_rating) {
+            actions.appendChild(
+              btn("填寫賣家評價", "btn-rate", () =>
+                showRatingModal(o.order_id, o.seller_id)
+              )
+            );
+          }
+          orderList.appendChild(block);
+        });
+      }
+      function btn(text, cls, fn) {
+        const b = document.createElement("button");
+        b.className = cls;
+        b.textContent = text;
+        b.onclick = fn;
+        return b;
+      }
+      function showImagePopup(url) {
+        if (!url || url === "[]") return;
+        let popup = document.getElementById("imagePopup");
+        if (!popup) {
+          popup = document.createElement("div");
+          popup.id = "imagePopup";
+          popup.className = "image-popup";
+          popup.innerHTML = `
+            <button class="close-btn" onclick="this.parentElement.classList.remove('show'); setTimeout(() => this.parentElement.remove(), 300);">✖</button>
+            <img src="" alt="票券圖片">
+          `;
+          document.body.appendChild(popup);
+        }
+        popup.querySelector("img").src = url;
+        setTimeout(() => popup.classList.add("show"), 10);
+      }
+      function toggleDetails(id) {
+        const details = document.getElementById(`details-${id}`);
+        details.classList.toggle("show");
+        const btn = details.parentElement.querySelector(".btn-details");
+        btn.textContent = details.classList.contains("show")
+          ? "收起明細"
+          : "查看明細";
+      }
+      function showRatingModal(orderId, sellerId) {
+        currentOrderId = orderId;
+        selectedRating = 5;
+        const modal = document.getElementById("ratingModal");
+        modal.dataset.sellerId = sellerId;
+        const stars = document.querySelectorAll(".star");
+        stars.forEach((star, index) => {
+          star.classList.toggle("filled", index < selectedRating);
+          star.onclick = () => {
+            selectedRating = parseInt(star.getAttribute("data-value"));
+            stars.forEach((s, i) => {
+              s.classList.toggle("filled", i < selectedRating);
+            });
+          };
+        });
+        modal.style.display = "flex";
+      }
+      function showSuccessPopup(rating) {
+        const popup = document.getElementById("successPopup");
+        const message = document.getElementById("successMessage");
+        const overlay = document.getElementById("loadingOverlay");
+        message.innerHTML = `您已送出評分：<br>${rating} 分！`;
+        document.querySelector(".loading-spinner").style.display = "none";
+        popup.style.display = "flex";
+        setTimeout(() => {
+          popup.classList.add("show");
+        }, 10);
+        setTimeout(() => {
+          popup.classList.remove("show");
+          setTimeout(() => {
+            popup.style.display = "none";
+            overlay.style.display = "none";
+            fetchOrders();
+          }, 400);
+        }, 3000);
+      }
+      async function submitRating() {
+        const token = localStorage.getItem("access_token");
+        const overlay = document.getElementById("loadingOverlay");
+        try {
+          const sellerId = parseInt(
+            document.getElementById("ratingModal").dataset.sellerId
+          );
+          const orderId = parseInt(currentOrderId);
+          if (!sellerId) {
+            throw new Error("賣家 ID 無效");
+          }
+          if (!orderId || isNaN(orderId)) {
+            throw new Error("訂單 ID 無效");
+          }
+          overlay.style.display = "flex";
+          document.querySelector(".loading-spinner").style.display = "block";
+          document.getElementById("ratingModal").style.display = "none";
+          const res = await fetch("/api/ratings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              ratee_id: sellerId,
+              score: selectedRating,
+              order_id: orderId,
+              comment: "",
+            }),
+          });
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(
+              `HTTP error! status: ${res.status}, detail: ${JSON.stringify(
+                errorData
+              )}`
+            );
+          }
+          showSuccessPopup(selectedRating);
+        } catch (err) {
+          console.error("評分失敗", err.message, err.stack);
+          overlay.style.display = "none";
+          alert(`評分失敗：${err.message}`);
+        }
+      }
+      // 進度條動畫
+      function initLoadingBar() {
+        const loadingBar = document.getElementById("loading-bar");
+        let progress = 0;
+        const interval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            loadingBar.style.width = `${progress}%`;
+          }
+        }, 200);
+        window.onload = () => {
+          clearInterval(interval);
+          progress = 100;
+          loadingBar.style.width = "100%";
+          setTimeout(() => {
+            loadingBar.style.opacity = "0";
+            setTimeout(() => {
+              loadingBar.style.display = "none";
+            }, 300);
+          }, 500);
+        };
+      }
+      // 初始設定
+      document.addEventListener("DOMContentLoaded", async () => {
+        await fetchOrders();
+        await fetchAuthStatus();
+        document
+          .getElementById("confirmRating")
+          .addEventListener("click", submitRating);
+        document.addEventListener("click", (e) => {
+          const modal = document.getElementById("ratingModal");
+          if (e.target === modal) {
+            modal.style.display = "none";
+          }
+        });
+        initLoadingBar();
+      });
+    </script>
+  </body>
+</html>
