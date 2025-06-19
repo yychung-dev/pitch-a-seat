@@ -1,4 +1,3 @@
-<!-- static/payment.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
   <head>
@@ -9,16 +8,24 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
       rel="stylesheet"
     />
-
-    <!-- 1. 載入 TapPay SDK v5.14.0 -->
-    <script src="https://js.tappaysdk.com/sdk/tpdirect/v5.14.0"></script>
-
     <style>
       body {
         font-family: "Noto Sans TC", sans-serif;
         background-color: #f5f5f5;
         margin: 0;
         padding: 40px 20px;
+      }
+      /* 進度條 */
+      #loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background-color: #8b1e3f;
+        z-index: 9999;
+        opacity: 1;
+        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
       }
       .container {
         max-width: 500px;
@@ -83,15 +90,28 @@
       }
     </style>
   </head>
-
   <body>
+    <!-- 進度條 -->
+    <div id="loading-bar" aria-hidden="true"></div>
+
+    <!-- 載入 TapPay SDK v5.14.0 -->
+    <script src="https://js.tappaysdk.com/sdk/tpdirect/v5.14.0"></script>
+
+    <script>
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        alert("請先登入後再付款");
+        window.location.href = "/";
+      }
+    </script>
+
     <div class="container">
       <h2>信用卡付款</h2>
       <p class="info-text">
         請輸入您的信用卡資訊（Sandbox 測試卡號，例如：4242 42424242 4242）。
       </p>
 
-      <!-- 2. 放置 TapPay Card UI 的容器 -->
+      <!-- 放置 TapPay Card UI 的容器 -->
       <div class="form-group">
         <label for="card-number">卡號</label>
         <div id="card-number"></div>
@@ -107,7 +127,7 @@
 
       <p class="error-message" id="tp-error"></p>
 
-      <!-- 3. 顯示訂單金額與按鈕 -->
+      <!-- 顯示訂單金額與按鈕 -->
       <div class="form-group">
         <label>訂單金額（NT$）</label>
         <p id="order-amount">載入中...</p>
@@ -117,23 +137,51 @@
     </div>
 
     <script>
-      // -------------------------------------------
-      // 1. 先解析 URL query string，拿到 order_id 與 member_id
-      // -------------------------------------------
+      // —— 進度條動畫
+      function initLoadingBar() {
+        console.log("初始化進度條"); // 除錯訊息
+        const loadingBar = document.getElementById("loading-bar");
+        let progress = 0;
+
+        // 模擬進度增加
+        const interval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            loadingBar.style.width = `${progress}%`;
+            console.log(`進度: ${progress}%`); // 除錯訊息
+          }
+        }, 200);
+
+        // 網頁載入完成時
+        window.onload = () => {
+          console.log("網頁載入完成"); // 除錯訊息
+          clearInterval(interval);
+          progress = 100;
+          loadingBar.style.width = "100%";
+          setTimeout(() => {
+            loadingBar.style.opacity = "0";
+            setTimeout(() => {
+              loadingBar.style.display = "none";
+              console.log("進度條隱藏"); // 除錯訊息
+            }, 300);
+          }, 500);
+        };
+      }
+
+      // 解析 URL query string，拿到 order_id 與 member_id
       const urlParams = new URLSearchParams(window.location.search);
       const orderId = urlParams.get("order_id");
       const memberId = urlParams.get("member_id");
 
       if (!orderId || !memberId) {
-        alert("訂單資訊不完整，請返回訂單頁重新操作。");
-        location.href = "/membership";
+        alert("訂單資訊不完整，請返回我的購買頁重新操作。");
+        location.href = "/member_buy";
       }
 
-      // -------------------------------------------
-      // 2. 等到 DOMContentLoaded 再初始化 TapPay SDK、掛載卡片 UI、讀金額、綁定按鈕事件
-      // -------------------------------------------
+      // 等到 DOMContentLoaded 再初始化 TapPay SDK、掛載卡片 UI、讀金額、綁定按鈕事件
       document.addEventListener("DOMContentLoaded", function () {
-        // 2.1. 確認 TPDirect 物件已被載入
+        // 確認 TPDirect 物件已被載入
         console.log("TPDirect 物件：", typeof TPDirect, TPDirect);
         if (typeof TPDirect === "undefined") {
           document.getElementById("tp-error").innerText =
@@ -141,7 +189,7 @@
           return;
         }
 
-        // 2.2. 初始化 TapPay
+        // 初始化 TapPay
         const tappay_app_id = "159952"; // Sandbox App ID
         const tappay_app_key =
           "app_5iVKPy5nuHAEKLp1kBaGyzR3mtpHAfUjnoJAslofmdov90OltX0v0oLSwTKU"; // Sandbox App Key
@@ -150,7 +198,7 @@
         TPDirect.setupSDK(tappay_app_id, tappay_app_key, tappay_env);
         console.log("TPDirect.setupSDK() 已執行");
 
-        // 2.3. 設定要掛載的 TapPay fields
+        // 設定要掛載的 TapPay fields
         TPDirect.card.setup({
           fields: {
             number: {
@@ -194,9 +242,8 @@
         });
         console.log("TPDirect.card.setup() 已執行");
 
-        // 2.4. 監聽 TapPay card 欄位狀態變化，若所有欄位都正確可以 getPrime 則啟用按鈕
+        // 監聽 TapPay card 欄位狀態變化，若所有欄位都正確可以 getPrime 則啟用按鈕
         TPDirect.card.onUpdate(function (update) {
-          // update.canGetPrime === true 代表所有欄位格式都正確
           if (update.canGetPrime) {
             document.getElementById("btn-pay").removeAttribute("disabled");
           } else {
@@ -204,10 +251,10 @@
           }
         });
 
-        // 2.5. 讀取訂單金額
+        // 讀取訂單金額
         fetchOrderAmount();
 
-        // 2.6. 綁定「確認付款」按鈕事件
+        // 綁定「確認付款」按鈕事件
         document
           .getElementById("btn-pay")
           .addEventListener("click", async function (e) {
@@ -233,19 +280,27 @@
               const prime = result.card.prime;
               console.log("取得 prime：", prime);
 
-              // 3. 將 prime 與 order_id、member_id 傳給後端
+              // 將 prime 與 order_id、member_id 傳給後端
               try {
+                const token = localStorage.getItem("access_token");
+                if (!token) {
+                  alert("請先登入");
+                  return (location.href = "/");
+                }
+
                 const payBtn = document.getElementById("btn-pay");
                 payBtn.setAttribute("disabled", true);
                 payBtn.innerText = "付款中…";
 
                 const res = await fetch("/api/tappay_pay", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + token,
+                  },
                   body: JSON.stringify({
                     prime: prime,
                     order_id: parseInt(orderId),
-                    buyer_id: parseInt(memberId),
                   }),
                 });
 
@@ -260,8 +315,8 @@
                   throw new Error(data.detail || "付款過程失敗");
                 }
                 if (data.status === "success") {
-                  alert("付款成功！即將返回會員中心");
-                  window.location.href = "/membership";
+                  alert("付款成功！請等待賣家出貨！即將返回我的購買頁");
+                  window.location.href = "/member_buy";
                 } else {
                   alert("付款失敗：" + (data.message || "請稍後再試"));
                   payBtn.removeAttribute("disabled");
@@ -277,25 +332,36 @@
               }
             });
           });
+
+        // 初始化進度條
+        initLoadingBar();
       });
 
-      // -------------------------------------------
-      // 3. 取得訂單金額，並顯示到畫面
-      // -------------------------------------------
+      // 取得訂單金額
       async function fetchOrderAmount() {
         try {
-          const res = await fetch(`/api/buyerOrders?member_id=${memberId}`);
-          console.log("fetchOrderAmount() HTTP 狀態：", res.status);
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            alert("請先登入");
+            return (location.href = "/");
           }
+
+          const res = await fetch("/api/buyerOrders", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+          if (res.status === 401) {
+            localStorage.removeItem("access_token");
+            alert("登入已過期，請重新登入");
+            return (location.href = "/");
+          }
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const orders = await res.json();
-          console.log("fetchOrderAmount() 回傳資料：", orders);
 
-          // 找到特定 order_id
           const order = orders.find((o) => o.order_id == orderId);
-          console.log("fetchOrderAmount() 找到的訂單：", order);
-
           if (!order) {
             document.getElementById("order-amount").innerText =
               "找不到訂單，請返回重新操作";
@@ -303,12 +369,10 @@
             return;
           }
           document.getElementById("order-amount").innerText = order.price;
-          // 如果卡片欄位已經可以 getPrime，就啟用按鈕
+
           const tappayStatus = TPDirect.card.getTappayFieldsStatus();
           if (tappayStatus.canGetPrime) {
             document.getElementById("btn-pay").removeAttribute("disabled");
-          } else {
-            document.getElementById("btn-pay").setAttribute("disabled", true);
           }
         } catch (err) {
           console.error("fetchOrderAmount() 錯誤：", err);
