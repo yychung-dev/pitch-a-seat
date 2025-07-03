@@ -110,6 +110,7 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ##  Database Schema
 
-> *(Insert ERD or database schema diagram here — you can export from dbdiagram.io, MySQL Workbench, or draw.io)*
+![Database ERD](./docs/database schema.png)
+
 
 ---
