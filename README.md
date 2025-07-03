@@ -104,7 +104,7 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ##  System Architecture
 
-> *(Insert architecture diagram here — recommended: PNG or SVG generated via [draw.io](https://app.diagrams.net) using AWS official icons)*
+
 
 ---
 
