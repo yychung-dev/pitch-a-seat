@@ -12,14 +12,31 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ##  Main Features
 
-- Post and browse second-hand tickets for CPBL games
-- Secure online payments via TapPay integration
-- Reservation system for upcoming games
-- In-site notifications and email alerts
-- Seller rating mechanism to build trust
-- Personalized ticket recommendations
-- Trending matches leaderboard
-- Image uploads and smart ticket sorting
+- **Ticket Posting & Browsing**  
+  Users can publish second-hand tickets with images, prices, and seat details. Tickets are browsed by clicking on a game date within the interactive calendar, allowing users to view all listings for that particular match, including seat details and prices..
+
+- **Secure Online Payment**  
+  Integrated with TapPay API to enable safe and verified online transactions between buyers and sellers.
+
+- **Reservation System**  
+  Users can reserve specific games in advance; the system will notify them instantly when relevant tickets are listed.
+
+- **Seller Rating**  
+  Buyers can rate sellers after a completed transaction, helping improve trust and transparency in the platform.
+
+- **Real-Time Notifications**  
+  Supports in-site alerts and email notifications for critical actions such as reservation matching, payment, and shipment.
+
+- **Trending Matches Leaderboard**  
+  Ranks the most traded games on the homepage based on real-time stats.
+
+- **Personalized Recommendations**  
+  Recommends suitable tickets based on user’s favorite team, order history, and reservation history.
+
+- **Smart Sorting & Filtering**  
+  Users can sort listings by published date, price, seat area, or seller rate for an optimized browsing experience.
+
+
 
 ---
 
