@@ -110,7 +110,8 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ##  Database Schema
 
-![Database ERD](./docs/database schema.png)
+![Database ERD](./docs/database_schema.png)
+
 
 
 ---
