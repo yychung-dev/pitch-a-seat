@@ -104,13 +104,14 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ##  System Architecture
 
+![Database ERD](./docs/database_system_architecture_pitchaseat.png)
 
 
 ---
 
 ##  Database Schema
 
-![Database ERD](./docs/database_schema.png)
+![Database ERD](./docs/database_schema_pitchaseat.png)
 
 
 
