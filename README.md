@@ -13,7 +13,7 @@ The platform also incorporates a personalized recommendation system based on mul
 ##  Main Features
 
 - **Ticket Posting & Browsing**  
-  Users can publish second-hand tickets with images, prices, and seat details. Tickets are browsed by clicking on a game date within the interactive calendar, allowing users to view all listings for that particular match, including seat details and prices..
+  Users can publish second-hand tickets with images, prices, and seat details. Tickets are browsed by clicking on a game date within the interactive calendar, allowing users to view all listings for that particular match, including seat details and prices.
 
 - **Secure Online Payment**  
   Integrated with TapPay API to enable safe and verified online transactions between buyers and sellers.
