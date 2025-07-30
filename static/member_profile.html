@@ -728,44 +728,75 @@
           }
           const name = document.getElementById("editName").value.trim();
           const email = document.getElementById("editEmail").value.trim();
-          const password = document.getElementById("editPassword").value;
+          const password = document.getElementById("editPassword").value.trim();
           const phone = document.getElementById("editPhone").value.trim();
           const city = document.getElementById("editCity").value;
           const favEls = document.querySelectorAll(
             "input[name='editFavoriteTeams']:checked"
           );
           const favorite_teams = Array.from(favEls).map((el) => el.value);
+
+          // 驗證輸入
           if (!name) {
             document.getElementById("profileErrorMsg").textContent =
               "姓名不可為空";
             return;
           }
-          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          if (
+            !email ||
+            !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+          ) {
             document.getElementById("profileErrorMsg").textContent =
-              "電子郵件格式錯誤";
+              "電子郵件格式錯誤，請輸入有效的電子郵件地址（例如：xxx_xxx@yahoo.com.tw）";
             return;
           }
           if (!/^09\d{8}$/.test(phone)) {
             document.getElementById("profileErrorMsg").textContent =
-              "手機格式錯誤";
+              "手機格式錯誤，請輸入09開頭的10位數字";
             return;
           }
-          const payload = {
-            name,
-            email,
-            phone,
-            city: city || null,
-            favorite_teams,
-          };
-          if (password) {
-            if (password.length < 6) {
+          if (password && password.length < 6) {
+            document.getElementById("profileErrorMsg").textContent =
+              "新密碼至少6位";
+            return;
+          }
+
+          // 建立 payload，只包含有變更的部分
+          const payload = {};
+          try {
+            const currentProfile = await fetch("/api/user/profile", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            });
+            if (!currentProfile.ok) {
+              throw new Error("無法取得當前個人資料");
+            }
+            const currentData = await currentProfile.json();
+
+            if (name !== currentData.name) payload.name = name;
+            if (email !== currentData.email) payload.email = email;
+            if (password) payload.password = password;
+            if (phone !== currentData.phone) payload.phone = phone;
+            if (city && city !== currentData.city) payload.city = city;
+            if (
+              JSON.stringify(favorite_teams) !==
+              JSON.stringify(currentData.favorite_teams)
+            ) {
+              payload.favorite_teams = favorite_teams;
+            }
+
+            // 如果沒有任何變更，提示使用者相關訊息
+            if (Object.keys(payload).length === 0) {
               document.getElementById("profileErrorMsg").textContent =
-                "新密碼至少6位";
+                "沒有任何資料變更";
               return;
             }
-            payload.password = password;
-          }
-          try {
+
+            console.log("發送的 payload：", payload); // 記錄 payload 以便 debug
+
             const res = await fetch("/api/user/profile", {
               method: "PUT",
               headers: {
@@ -775,6 +806,7 @@
               body: JSON.stringify(payload),
             });
             const data = await res.json();
+
             if (res.status === 401) {
               localStorage.removeItem("access_token");
               alert("身份驗證失敗，請重新登入");
@@ -782,16 +814,30 @@
               return;
             }
             if (!res.ok) {
-              document.getElementById("profileErrorMsg").textContent =
-                data.detail || "更新失敗";
+              if (res.status === 422) {
+                const errorDetails = data.detail || [];
+                const errorMsg = errorDetails
+                  .map((err) => `${err.loc.join(".")}: ${err.msg}`)
+                  .join("; ");
+                document.getElementById("profileErrorMsg").textContent =
+                  errorMsg ||
+                  "更新失敗，請檢查電子郵件格式（例如：xxx_xxx@yahoo.com.tw）";
+              } else if (res.status === 409) {
+                document.getElementById("profileErrorMsg").textContent =
+                  "此電子郵件已被其他帳號使用";
+              } else {
+                document.getElementById("profileErrorMsg").textContent =
+                  data.detail || "更新失敗";
+              }
             } else {
               document.getElementById("profileEdit").style.display = "none";
               document.getElementById("profileView").style.display = "block";
               document.getElementById("profileErrorMsg").textContent = "";
               await loadUserProfile();
+              alert("個人資料更新成功");
             }
           } catch (err) {
-            console.error(err);
+            console.error("前端錯誤：", err);
             document.getElementById("profileErrorMsg").textContent =
               "伺服器錯誤，請稍後再試";
           }

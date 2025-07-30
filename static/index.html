@@ -783,13 +783,13 @@
     <section id="section5" class="section">
       <div class="container" style="display: flex">
         <div class="left">
-          <h3 class="section-title">熱門場次票價中位數</h3>
+          <h3 class="section-title">本月熱門場次票價中位數</h3>
           <div class="chart-container">
             <div id="medianPriceChart" class="bar-chart"></div>
           </div>
         </div>
         <div class="right">
-          <h3 class="section-title">球隊交易熱度排行</h3>
+          <h3 class="section-title">本月球隊交易熱度統計</h3>
           <div class="chart-container">
             <div class="pie-chart-container">
               <div id="teamTradePieChart" class="pie-chart"></div>
@@ -963,8 +963,8 @@
         loginError = document.getElementById("loginErrorMsg");
       function openLoginModal() {
         loginError.textContent = "";
-        loginEmail.value = "";
-        loginPassword.value = "";
+        loginEmail.value = "elsachung999@gmail.com";
+        loginPassword.value = "test123";
         loginModal.style.display = "flex";
       }
       function closeLoginModal() {
