@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Body, Depends, Request, Header, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ValidationError
 from typing import List, Optional, Dict, Any, Union
 from datetime import date, timedelta, datetime, time
 
@@ -184,12 +184,11 @@ class UserProfileOut(BaseModel):
 
 class UserProfileUpdateIn(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=50)
-    email: Optional[EmailStr] = Field(None, max_length=100)  
-    password: Optional[str] = Field(None, min_length=6)    
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=6)
     phone: Optional[str] = Field(None, pattern=r"^09\d{8}$")
     city: Optional[str] = None
     favorite_teams: Optional[List[str]] = None
-    subscribe_newsletter: Optional[bool] = None
 
 
 class Game(BaseModel):
@@ -386,59 +385,73 @@ def update_profile(
     update_fields = []
     update_vals = []
 
-    if data.email is not None and data.email != user["email"]:
+    try:
+        # 檢查 email 唯一性
+        if data.email is not None and data.email != user["email"]:
+            try:
+                with cnxpool.get_connection() as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT id FROM members WHERE email = %s AND id != %s", (data.email, user_id))
+                        if cursor.fetchone():
+                            raise HTTPException(status_code=409, detail="此電子郵件已被其他帳號使用")
+            except HTTPException:
+                raise
+            except Exception as e:
+                print("檢查 email 唯一性失敗：", e)
+                raise HTTPException(status_code=500, detail="伺服器錯誤")
+
+        # 建立更新部分
+        if data.name is not None:
+            update_fields.append("name = %s")
+            update_vals.append(data.name)
+        if data.email is not None:
+            update_fields.append("email = %s")
+            update_vals.append(data.email)
+        if data.password is not None:
+            salt = bcrypt.gensalt()
+            pwd_hash = bcrypt.hashpw(data.password.encode("utf-8"), salt).decode("utf-8")
+            update_fields.append("password_hash = %s")
+            update_vals.append(pwd_hash)
+        if data.phone is not None:
+            update_fields.append("phone = %s")
+            update_vals.append(data.phone)
+        if data.city is not None:
+            update_fields.append("city = %s")
+            update_vals.append(data.city)
+        if data.favorite_teams is not None:
+            fav_json = json.dumps(data.favorite_teams)
+            update_fields.append("favorite_teams = %s")
+            update_vals.append(fav_json)
+
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="沒有要更新的欄位")
+
+        # 更新資料庫
         try:
             with cnxpool.get_connection() as conn:
                 with conn.cursor() as cursor:
-                    cursor.execute("SELECT id FROM members WHERE email = %s AND id != %s", (data.email, user_id))
-                    if cursor.fetchone():
-                        raise HTTPException(status_code=409, detail="此電子郵件已被使用")
-        except HTTPException:
-            raise
+                    set_clause = ", ".join(update_fields)
+                    update_vals.append(user_id)
+                    query = f"UPDATE members SET {set_clause}, updated_at = NOW() WHERE id = %s"
+                    cursor.execute(query, tuple(update_vals))
+                    conn.commit()
         except Exception as e:
-            print("檢查 email 唯一性失敗：", e)
-            raise HTTPException(status_code=500, detail="伺服器錯誤")
+            print("更新個人資料失敗：", e)
+            raise HTTPException(status_code=500, detail="更新失敗")
 
-    if data.name is not None:
-        update_fields.append("name = %s")
-        update_vals.append(data.name)
-    if data.email is not None:
-        update_fields.append("email = %s")
-        update_vals.append(data.email)
-    if data.password is not None:
-        salt = bcrypt.gensalt()
-        pwd_hash = bcrypt.hashpw(data.password.encode("utf-8"), salt).decode("utf-8")
-        update_fields.append("password_hash = %s")
-        update_vals.append(pwd_hash)
-    if data.phone is not None:
-        update_fields.append("phone = %s")
-        update_vals.append(data.phone)
-    if data.city is not None:
-        update_fields.append("city = %s")
-        update_vals.append(data.city)
-    if data.favorite_teams is not None:
-        fav_json = json.dumps(data.favorite_teams)
-        update_fields.append("favorite_teams = %s")
-        update_vals.append(fav_json)
-    # 移除 subscribe_newsletter 處理
+        # 更新後回傳最新資料
+        return get_profile(user)
 
-    if not update_fields:
-        raise HTTPException(status_code=400, detail="沒有要更新的欄位")
-
-    try:
-        with cnxpool.get_connection() as conn:
-            with conn.cursor() as cursor:
-                set_clause = ", ".join(update_fields)
-                update_vals.append(user_id)
-                query = f"UPDATE members SET {set_clause} WHERE id = %s"
-                cursor.execute(query, tuple(update_vals))
-                conn.commit()
-    except Exception as e:
-        print("更新個人資料失敗：", e)
-        raise HTTPException(status_code=500, detail="更新失敗")
-
-    # 更新後再次回傳最新資料
-    return get_profile(user)
+    except ValidationError as e:
+        # 記錄驗證錯誤詳細資料
+        print("Pydantic 驗證錯誤：", e.errors(), "輸入數據：", data.dict())
+        return JSONResponse(
+            status_code=422,
+            content={"detail": [
+                {"loc": err["loc"], "msg": err["msg"], "type": err["type"]}
+                for err in e.errors()
+            ]}
+        )
 
 
 

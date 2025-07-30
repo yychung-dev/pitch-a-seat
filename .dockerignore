@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# pytest cache
+.pytest_cache/
+
+
+# Docker/環境/機密檔
+.env
+*.log
+
+# 圖片上傳資料夾（若尚未用 S3）
+static/uploads/
+
+# 編輯器 / 作業系統產生的垃圾
+*.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# 暫存資料夾
+tmp/
