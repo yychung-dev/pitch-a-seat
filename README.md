@@ -66,11 +66,11 @@ The platform also incorporates a personalized recommendation system based on mul
 - **Deployed the site with Docker and Nginx**  
   Containerized the application using Docker and set up Nginx as a reverse proxy with HTTPS encryption, deploying the site on AWS EC2 for a stable and scalable production environment.
 
-- **Established unit tests and a CI/CD pipeline**  
-  Wrote unit tests with `pytest` and used GitHub Actions to automate testing and deployment, improving code reliability and development efficiency.
+- **Established unit tests**  
+  Wrote unit tests with `pytest` to validate API logic and ensure code reliability.
 
 - **Built cloud infrastructure with AWS services**  
-  Utilized AWS RDS (MySQL) for database hosting and stored static/media assets in S3, accelerated through CloudFront for efficient content delivery.
+  Managed AWS RDS (MySQL) for persistent data storage and query optimization.
 
 ---
 
@@ -84,8 +84,6 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ###  Cloud Services
 - AWS EC2  
-- AWS S3  
-- AWS CloudFront  
 - AWS RDS  
 - AWS ElastiCache (Redis)
 
@@ -93,7 +91,6 @@ The platform also incorporates a personalized recommendation system based on mul
 - Git & GitHub  
 - Docker  
 - Nginx  
-- GitHub Actions (CI/CD)
 
 ###  Frontend
 - HTML  
