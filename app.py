@@ -24,6 +24,9 @@ from email.message import EmailMessage
 import smtplib
 import math
 
+# Redis 相關
+import redis
+from redis.exceptions import ConnectionError, RedisError
 
 
 # ===== 基本設定 =====
@@ -70,6 +73,22 @@ def get_member_email(cursor, member_id: int) -> str:
     if not member:
         raise HTTPException(status_code=404, detail=f"會員 ID {member_id} 不存在")
     return member["email"]
+
+# Redis 連線設定
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")  # 若無密碼可設為 None
+REDIS_POOL = redis.ConnectionPool(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    password=REDIS_PASSWORD,
+    decode_responses=True,  # 自動將回應解碼為字串
+    max_connections=10
+)
+
+def get_redis_client():
+    return redis.Redis(connection_pool=REDIS_POOL)
+
 
 
 app = FastAPI()
@@ -553,6 +572,20 @@ def get_match(date: str, stadium: str, team1: str, team2: str):
 # 取得本月熱賣場次前五名排行榜 API
 @app.get("/api/top_games")
 def get_top_games():
+    # 產生 Redis 鍵名（例如 top_games:2025-07）
+    current_year_month = datetime.now().strftime("%Y-%m")
+    cache_key = f"top_games:{current_year_month}"
+    redis_client = get_redis_client()
+
+    try:
+        # 嘗試從 Redis 獲取快取
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            return json.loads(cached_data)
+    except (ConnectionError, RedisError) as e:
+        print(f"Redis 連線錯誤，降級查詢資料庫: {e}")
+
+    # 若無快取或 Redis 錯誤，查詢資料庫
     query = """
         SELECT 
             g.id AS game_id,
@@ -580,9 +613,14 @@ def get_top_games():
                     # 格式化 game_date 為 YYYY-MM-DD
                     if isinstance(row["game_date"], date):
                         row["game_date"] = row["game_date"].strftime("%Y-%m-%d")
+                # 將結果存入 Redis，設定 TTL 為 1 天（86400 秒）
+                try:
+                    redis_client.setex(cache_key, 86400, json.dumps(results))
+                except (ConnectionError, RedisError) as e:
+                    print(f"無法寫入 Redis 快取: {e}")
                 return results
     except Exception as e:
-        print("錯誤:", e)
+        print(f"資料庫查詢錯誤: {e}")
         raise HTTPException(status_code=500, detail="查詢排行榜失敗")
 
 
@@ -1627,13 +1665,22 @@ def mark_shipped(
                         "member_id": order["buyer_id"],
                         "message": msg,
                         "url": "/member_buy"
-                    })                
+                    })
+                # 無效化 Redis 快取
+                current_year_month = datetime.now().strftime("%Y-%m")
+                cache_key = f"top_games:{current_year_month}"
+                try:
+                    redis_client = get_redis_client()
+                    redis_client.delete(cache_key)
+                    print(f"已無效化快取: {cache_key}")
+                except (ConnectionError, RedisError) as e:
+                    print(f"無法無效化 Redis 快取: {e}")                
             conn.commit()
         return {"status":"success"}
     except HTTPException:
         raise
     except Exception as e:
-        print("出貨錯誤：", e)
+        print(f"出貨錯誤: {e}")
         raise HTTPException(status_code=500, detail="出貨失敗")
 
 # 標記已讀的 API
