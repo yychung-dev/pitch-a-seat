@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
@@ -32,7 +32,9 @@
         height: 3px;
         background-color: #8b1e3f;
         z-index: 9999;
-        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        transition:
+          width 0.3s ease-in-out,
+          opacity 0.3s ease-in-out;
       }
       /* 導覽列 */
       .navigation {
@@ -96,7 +98,9 @@
         z-index: 200;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .dropdown-menu.show {
         display: block;
@@ -108,7 +112,9 @@
         padding: 12px 15px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .dropdown-menu li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -161,7 +167,9 @@
         z-index: 150;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .notif-dropdown.show {
         display: block;
@@ -179,7 +187,9 @@
         font-size: 14px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .notif-dropdown li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -338,23 +348,23 @@
     <header>
       <div class="navigation">
         <div class="navlist">
-          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+          <div class="webtitle" onclick="location.href = '/'">Pitch-A-Seat</div>
           <div class="nav-buttons">
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/sell')"
+              onclick="requireLogin(() => (location.href = '/sell'))"
             >
               賣 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/buy')"
+              onclick="requireLogin(() => (location.href = '/buy'))"
             >
               買 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/reservation')"
+              onclick="requireLogin(() => (location.href = '/reservation'))"
             >
               預 約
             </button>
@@ -607,7 +617,7 @@
           .getElementById("gotoReservation")
           .addEventListener(
             "click",
-            () => (location.href = "/member_reservation")
+            () => (location.href = "/member_reservation"),
           );
         document
           .getElementById("gotoLaunch")
@@ -694,7 +704,7 @@
           if (data.favorite_teams && data.favorite_teams.length > 0) {
             data.favorite_teams.forEach((team) => {
               const chk = document.querySelector(
-                `input[name="editFavoriteTeams"][value="${team}"]`
+                `input[name="editFavoriteTeams"][value="${team}"]`,
               );
               if (chk) chk.checked = true;
             });
@@ -732,7 +742,7 @@
           const phone = document.getElementById("editPhone").value.trim();
           const city = document.getElementById("editCity").value;
           const favEls = document.querySelectorAll(
-            "input[name='editFavoriteTeams']:checked"
+            "input[name='editFavoriteTeams']:checked",
           );
           const favorite_teams = Array.from(favEls).map((el) => el.value);
 

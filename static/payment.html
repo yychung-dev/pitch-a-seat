@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
@@ -25,7 +25,9 @@
         background-color: #8b1e3f;
         z-index: 9999;
         opacity: 1;
-        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        transition:
+          width 0.3s ease-in-out,
+          opacity 0.3s ease-in-out;
       }
       .container {
         max-width: 500px;
@@ -62,7 +64,8 @@
       .tappay-field-focus {
         border-color: #66afe9 !important;
         outline: 0;
-        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+        box-shadow:
+          inset 0 1px 1px rgba(0, 0, 0, 0.075),
           0 0 8px rgba(102, 175, 233, 0.6);
       }
       .error-message {
@@ -280,7 +283,7 @@
               const prime = result.card.prime;
               console.log("取得 prime：", prime);
 
-              // 將 prime 與 order_id、member_id 傳給後端
+              // 將 prime 與 order_id 傳給後端 (不傳 member_id 給後端)
               try {
                 const token = localStorage.getItem("access_token");
                 if (!token) {
@@ -306,7 +309,7 @@
 
                 console.log(
                   "POST /api/tappay_pay 回傳 HTTP 狀態：",
-                  res.status
+                  res.status,
                 );
                 const data = await res.json();
                 console.log("POST /api/tappay_pay 回傳 JSON：", data);

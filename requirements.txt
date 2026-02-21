@@ -5,10 +5,14 @@ python-dotenv
 mysql-connector-python
 jinja2
 python-multipart
-boto3
+
 email-validator
 bcrypt
 PyJWT
 Pillow
 httpx
 pytest
+
+
+# 新增 AWS SDK
+boto3==1.35.0 

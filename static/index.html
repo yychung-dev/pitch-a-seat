@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
@@ -35,7 +35,9 @@
         height: 3px;
         background-color: #8b1e3f;
         z-index: 9999;
-        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        transition:
+          width 0.3s ease-in-out,
+          opacity 0.3s ease-in-out;
       }
       /* 導覽列 */
       .navigation {
@@ -99,7 +101,9 @@
         z-index: 200;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .dropdown-menu.show {
         display: block;
@@ -111,7 +115,9 @@
         padding: 12px 15px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
 
       .dropdown-menu li:hover {
@@ -166,7 +172,9 @@
         z-index: 150;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .notif-dropdown.show {
         display: block;
@@ -184,7 +192,9 @@
         font-size: 14px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .notif-dropdown li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -608,7 +618,9 @@
       .section {
         opacity: 0;
         transform: translateY(50px);
-        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        transition:
+          opacity 0.8s ease-out,
+          transform 0.8s ease-out;
       }
       .fade-in-up {
         opacity: 1;
@@ -639,19 +651,19 @@
           <div class="nav-buttons">
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/sell')"
+              onclick="requireLogin(() => (location.href = '/sell'))"
             >
               賣 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/buy')"
+              onclick="requireLogin(() => (location.href = '/buy'))"
             >
               買 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/reservation')"
+              onclick="requireLogin(() => (location.href = '/reservation'))"
             >
               預 約
             </button>
@@ -736,7 +748,7 @@
           <p>自訂售票條件、輕鬆上架票券，<br />快速找到買家</p>
           <button
             class="action-btn"
-            onclick="requireLogin(() => location.href='/sell')"
+            onclick="requireLogin(() => (location.href = '/sell'))"
           >
             我要賣票
           </button>
@@ -746,7 +758,7 @@
           <p>瀏覽熱門場次、自選排序條件，<br />搶購心儀的票券</p>
           <button
             class="action-btn"
-            onclick="requireLogin(() => location.href='/buy')"
+            onclick="requireLogin(() => (location.href = '/buy'))"
           >
             我要買票
           </button>
@@ -756,7 +768,7 @@
           <p>設定預約條件、鎖定未來場次，不漏接任何比賽</p>
           <button
             class="action-btn"
-            onclick="requireLogin(() => location.href='/reservation')"
+            onclick="requireLogin(() => (location.href = '/reservation'))"
           >
             我要預約
           </button>
@@ -783,7 +795,7 @@
     <section id="section5" class="section">
       <div class="container" style="display: flex">
         <div class="left">
-          <h3 class="section-title">本月熱門場次票價中位數</h3>
+          <h3 class="section-title">近期熱門交易票價中位數</h3>
           <div class="chart-container">
             <div id="medianPriceChart" class="bar-chart"></div>
           </div>
@@ -831,7 +843,7 @@
       async function fetchAuthStatus() {
         const token = localStorage.getItem("access_token");
         if (!token) {
-          showLoginBtn();
+          showLoginBtn(); // 沒 token → 顯示登入按鈕
           return;
         }
         try {
@@ -853,7 +865,7 @@
             </div>
             <div id="userArea"></div>
           `;
-          showUserDropdown(user);
+          showUserDropdown(user); // 有效 → 顯示使用者名稱下拉選單
           loadNotifications();
           document
             .getElementById("notifBell")
@@ -875,13 +887,12 @@
             });
         } catch {
           localStorage.removeItem("access_token");
-          showLoginBtn();
+          showLoginBtn(); // token 無效 → 清除並顯示登入按鈕
         }
       }
       function showLoginBtn() {
-        document.getElementById(
-          "userArea"
-        ).innerHTML = `<button class="btn-link" id="btnLogin">登入／註冊</button>`;
+        document.getElementById("userArea").innerHTML =
+          `<button class="btn-link" id="btnLogin">登入／註冊</button>`;
         document.getElementById("btnLogin").onclick = openLoginModal;
       }
       function showUserDropdown(user) {
@@ -920,7 +931,7 @@
           .getElementById("gotoReservation")
           .addEventListener(
             "click",
-            () => (location.href = "/member_reservation")
+            () => (location.href = "/member_reservation"),
           );
         document
           .getElementById("gotoLaunch")
@@ -1040,7 +1051,7 @@
         elementId,
         targetValue,
         isCurrency,
-        duration = 2000
+        duration = 2000,
       ) {
         const element = document.getElementById(elementId);
         const startValue = 0;
@@ -1056,7 +1067,7 @@
             startValue + (targetValue - startValue) * easedProgress;
           if (isCurrency) {
             element.textContent = `NT$${Math.floor(currentValue).toLocaleString(
-              "zh-TW"
+              "zh-TW",
             )}`;
           } else {
             element.textContent =
@@ -1087,7 +1098,7 @@
       // 取得累積交易金額
       async function fetchTotalAmount() {
         try {
-          const res = await fetch("/api/total_amount");
+          const res = await fetch("/api/total_amount"); // 呼叫非同步函數時，使用 await
           if (!res.ok) throw new Error("無法取得交易金額");
           const data = await res.json();
           animateNumber("totalAmount", data.total_amount, true);
@@ -1145,7 +1156,7 @@
             (game) =>
               `${game.game_date}<br>${
                 teamShortNames[game.team_away] || game.team_away
-              } vs ${teamShortNames[game.team_home] || game.team_home}`
+              } vs ${teamShortNames[game.team_home] || game.team_home}`,
           );
           const prices = games.map((game) => game.median_price);
           const maxPrice = Math.max(...prices) * 1.1;
@@ -1189,7 +1200,7 @@
           };
           const totalTrades = teams.reduce(
             (sum, team) => sum + team.trade_count,
-            0
+            0,
           );
           let cumulativePercent = 0;
           const gradients = teams.map((team) => {
@@ -1207,8 +1218,8 @@
             li.innerHTML = `
               <span style="background-color: ${color}"></span>
               ${team.team}: ${((team.trade_count / totalTrades) * 100).toFixed(
-              1
-            )}%
+                1,
+              )}%
             `;
             legend.appendChild(li);
           });
@@ -1258,7 +1269,7 @@
       // 初始化
       document.addEventListener("DOMContentLoaded", () => {
         const sections = document.querySelectorAll(
-          "#section2, #section3, #section4, #section5, #section6"
+          "#section2, #section3, #section4, #section5, #section6",
         );
         const observer = new IntersectionObserver(
           (entries, observer) => {
@@ -1272,7 +1283,7 @@
           {
             threshold: 0.1,
             rootMargin: "0px 0px -50px 0px",
-          }
+          },
         );
         sections.forEach((section) => {
           observer.observe(section);

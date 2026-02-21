@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
@@ -32,7 +32,9 @@
         height: 3px;
         background-color: #8b1e3f;
         z-index: 9999;
-        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        transition:
+          width 0.3s ease-in-out,
+          opacity 0.3s ease-in-out;
       }
       /* 導覽列 */
       .navigation {
@@ -96,7 +98,9 @@
         z-index: 200;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .dropdown-menu.show {
         display: block;
@@ -108,7 +112,9 @@
         padding: 12px 15px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .dropdown-menu li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -161,7 +167,9 @@
         z-index: 150;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .notif-dropdown.show {
         display: block;
@@ -179,7 +187,9 @@
         font-size: 14px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .notif-dropdown li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -431,7 +441,8 @@
         justify-content: center;
         align-items: center;
         opacity: 0;
-        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        transition:
+          opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
           transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .success-popup.show {
@@ -510,23 +521,23 @@
     <header>
       <div class="navigation">
         <div class="navlist">
-          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+          <div class="webtitle" onclick="location.href = '/'">Pitch-A-Seat</div>
           <div class="nav-buttons">
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/sell')"
+              onclick="requireLogin(() => (location.href = '/sell'))"
             >
               賣 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/buy')"
+              onclick="requireLogin(() => (location.href = '/buy'))"
             >
               買 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/reservation')"
+              onclick="requireLogin(() => (location.href = '/reservation'))"
             >
               預 約
             </button>
@@ -642,7 +653,7 @@
           .getElementById("gotoReservation")
           .addEventListener(
             "click",
-            () => (location.href = "/member_reservation")
+            () => (location.href = "/member_reservation"),
           );
         document
           .getElementById("gotoLaunch")
@@ -771,13 +782,34 @@
       }
       function formatDateTime(dt) {
         if (!dt) return "--";
-        const date = new Date(dt);
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${String(date.getDate()).padStart(2, "0")} ${String(
-          date.getHours()
-        ).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+        // 確保時間字串被解析為 UTC
+        // 如果沒有 Z 或 +00:00，手動加上 Z，當成 UTC
+        let dateString = dt;
+        if (!dt.includes("Z") && !dt.includes("+")) {
+          dateString = dt + "Z";
+        }
+
+        // const date = new Date(dt); //invalid
+        const date = new Date(dateString);
+
+        // toLocaleString 會自動轉換成使用者當地時間
+        return date
+          .toLocaleString("zh-TW", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false, // 使用 24 小時制
+          })
+          .replace(/\//g, "-"); // 把 2025/02/04 改成 2025-02-04
+        // return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        //   2,
+        //   "0",
+        // )}-${String(date.getDate()).padStart(2, "0")} ${String(
+        //   date.getHours(),
+        // ).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
       }
       function renderOrders(orders) {
         const orderList = document.getElementById("orderList");
@@ -793,8 +825,8 @@
           const rating = o.rating
             ? `<span class="rating-score">${o.rating.toFixed(1)}</span>`
             : o.shipment_status === "已出貨"
-            ? "未評分"
-            : "--";
+              ? "未評分"
+              : "--";
           const note = o.note && o.note.trim() ? o.note : "無";
           let imageLink = "無";
           if (o.image_urls) {
@@ -821,22 +853,22 @@
                 o.order_status === "success"
                   ? "status-success"
                   : o.order_status === "failed"
-                  ? "status-failed"
-                  : ""
+                    ? "status-failed"
+                    : ""
               }">${o.order_status}</span></span>
               <span>付款狀態：<span class="${
                 isFailed
                   ? "status-na"
                   : o.payment_status === "已付款"
-                  ? "status-paid"
-                  : ""
+                    ? "status-paid"
+                    : ""
               }">${paymentStatus}</span></span>
               <span>出貨狀態：<span class="${
                 isFailed
                   ? "status-na"
                   : o.shipment_status === "已出貨"
-                  ? "status-shipped"
-                  : ""
+                    ? "status-shipped"
+                    : ""
               }">${shipmentStatus}</span></span>
             </div>
             <div class="actions"></div>
@@ -853,7 +885,7 @@
         <div class="order-details" id="details-${o.order_id}">
           <div class="order-row details-row-1">
             <span>訂單編號：#${o.order_id}</span>
-            <span>訂單成立時間：${formatDateTime(o.created_at)}</span>
+            <span>訂單成立時間：${formatDateTime(o.match_requested_at)}</span>
           </div>
           <div class="order-row details-row-2">
             <span>付款時間：${formatDateTime(o.paid_at)}</span>
@@ -877,7 +909,7 @@
           if (o.order_status === "媒合中") {
             actions.append(
               btn("接受", "btn-accept", () => upd(o.order_id, "accept")),
-              btn("拒絕", "btn-reject", () => upd(o.order_id, "reject"))
+              btn("拒絕", "btn-reject", () => upd(o.order_id, "reject")),
             );
           }
           orderList.appendChild(block);
@@ -924,7 +956,7 @@
         document.querySelector(".loading-spinner").style.display = "block";
         overlay.style.display = "flex";
         const button = document.querySelector(
-          `button.btn-${act}[onclick*='${id}']`
+          `button.btn-${act}[onclick*='${id}']`,
         );
         if (button) {
           button.disabled = true;
@@ -978,7 +1010,7 @@
         document.querySelector(".loading-spinner").style.display = "block";
         overlay.style.display = "flex";
         const button = document.querySelector(
-          `button.btn-ship[onclick*='(${orderId})']`
+          `button.btn-ship[onclick*='(${orderId})']`,
         );
         if (button) {
           button.disabled = true;

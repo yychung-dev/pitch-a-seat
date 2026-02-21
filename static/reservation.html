@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
@@ -29,7 +29,9 @@
         height: 3px;
         background-color: #8b1e3f;
         z-index: 9999;
-        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        transition:
+          width 0.3s ease-in-out,
+          opacity 0.3s ease-in-out;
       }
       /* 導覽列 */
       .navigation {
@@ -93,7 +95,9 @@
         z-index: 200;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .dropdown-menu.show {
         display: block;
@@ -105,7 +109,9 @@
         padding: 12px 15px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .dropdown-menu li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -158,7 +164,9 @@
         z-index: 150;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .notif-dropdown.show {
         display: block;
@@ -176,7 +184,9 @@
         font-size: 14px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .notif-dropdown li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -612,7 +622,8 @@
         justify-content: center;
         align-items: center;
         opacity: 0;
-        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        transition:
+          opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
           transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .success-popup.show {
@@ -670,23 +681,23 @@
     <header>
       <div class="navigation">
         <div class="navlist">
-          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+          <div class="webtitle" onclick="location.href = '/'">Pitch-A-Seat</div>
           <div class="nav-buttons">
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/sell')"
+              onclick="requireLogin(() => (location.href = '/sell'))"
             >
               賣 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/buy')"
+              onclick="requireLogin(() => (location.href = '/buy'))"
             >
               買 票
             </button>
             <button
               class="nav-action-btn active"
-              onclick="requireLogin(() => location.href='/reservation')"
+              onclick="requireLogin(() => (location.href = '/reservation'))"
             >
               預 約
             </button>
@@ -911,7 +922,7 @@
           .getElementById("gotoReservation")
           .addEventListener(
             "click",
-            () => (location.href = "/member_reservation")
+            () => (location.href = "/member_reservation"),
           );
         document
           .getElementById("gotoLaunch")
@@ -1015,9 +1026,9 @@
                                <div class="stadium-time"><span class="stadium">${
                                  g.stadium
                                }</span><span class="time">${g.start_time.slice(
-                  0,
-                  5
-                )}</span></div>`;
+                                 0,
+                                 5,
+                               )}</span></div>`;
                 e._data = g;
                 // 只為未禁用的日期添加點擊事件
                 if (!box.classList.contains("disabled")) {
@@ -1032,13 +1043,12 @@
                     document.getElementById("resTime").value =
                       g.start_time.slice(0, 5);
                     document.getElementById("resVenue").value = g.stadium;
-                    document.getElementById(
-                      "resTeams"
-                    ).value = `${g.team_away} vs ${g.team_home}`;
+                    document.getElementById("resTeams").value =
+                      `${g.team_away} vs ${g.team_home}`;
                     document.getElementById("resGameNumber").value =
                       g.game_number;
                     document.querySelector(
-                      "#reserveForm button[type=submit]"
+                      "#reserveForm button[type=submit]",
                     ).disabled = false;
                     const formWrapper = document.querySelector(".form-wrapper");
                     if (formWrapper) {
@@ -1226,9 +1236,8 @@
       document.addEventListener("DOMContentLoaded", () => {
         renderCalendar(cy, cm);
         updatePreview();
-        document.querySelector(
-          "#reserveForm button[type=submit]"
-        ).disabled = true;
+        document.querySelector("#reserveForm button[type=submit]").disabled =
+          true;
         fetchAuthStatus();
         initLoadingBar();
         checkMidnight(); // 啟動午夜檢查

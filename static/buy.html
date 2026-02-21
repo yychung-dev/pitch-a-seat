@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
@@ -29,7 +29,9 @@
         height: 3px;
         background-color: #8b1e3f;
         z-index: 9999;
-        transition: width 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        transition:
+          width 0.3s ease-in-out,
+          opacity 0.3s ease-in-out;
       }
       /* 導覽列 */
       .navigation {
@@ -93,7 +95,9 @@
         z-index: 200;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .dropdown-menu.show {
         display: block;
@@ -105,7 +109,9 @@
         padding: 12px 15px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .dropdown-menu li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -158,7 +164,9 @@
         z-index: 150;
         opacity: 0;
         transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       }
       .notif-dropdown.show {
         display: block;
@@ -176,7 +184,9 @@
         font-size: 14px;
         cursor: pointer;
         color: #fff;
-        transition: background 0.5s ease, color 0.3s ease;
+        transition:
+          background 0.5s ease,
+          color 0.3s ease;
       }
       .notif-dropdown li:hover {
         background: linear-gradient(45deg, #ff6ec4, #7873f5, #4ade80, #facc15);
@@ -607,7 +617,8 @@
         justify-content: center;
         align-items: center;
         opacity: 0;
-        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        transition:
+          opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
           transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .success-popup.show {
@@ -666,23 +677,23 @@
     <header>
       <div class="navigation">
         <div class="navlist">
-          <div class="webtitle" onclick="location.href='/'">Pitch-A-Seat</div>
+          <div class="webtitle" onclick="location.href = '/'">Pitch-A-Seat</div>
           <div class="nav-buttons">
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/sell')"
+              onclick="requireLogin(() => (location.href = '/sell'))"
             >
               賣 票
             </button>
             <button
               class="nav-action-btn active"
-              onclick="requireLogin(() => location.href='/buy')"
+              onclick="requireLogin(() => (location.href = '/buy'))"
             >
               買 票
             </button>
             <button
               class="nav-action-btn"
-              onclick="requireLogin(() => location.href='/reservation')"
+              onclick="requireLogin(() => (location.href = '/reservation'))"
             >
               預 約
             </button>
@@ -841,7 +852,7 @@
           .getElementById("gotoReservation")
           .addEventListener(
             "click",
-            () => (location.href = "/member_reservation")
+            () => (location.href = "/member_reservation"),
           );
         document
           .getElementById("gotoLaunch")
@@ -1017,7 +1028,7 @@
         el.addEventListener("change", () => {
           currentPage = 1;
           fetchTickets();
-        })
+        }),
       );
       // 取票
       async function fetchTickets(page = currentPage) {
@@ -1026,7 +1037,7 @@
           sort_order = parts.pop(),
           sort_by = parts.join("_"),
           areas = Array.from(
-            document.querySelectorAll("input[name='area']:checked")
+            document.querySelectorAll("input[name='area']:checked"),
           )
             .map((i) => i.value)
             .join(",");
@@ -1104,7 +1115,7 @@
                   (_, i) =>
                     `<span id="dot-${id}-${i}" class="${
                       i === 0 ? "active" : ""
-                    }"></span>`
+                    }"></span>`,
                 )
                 .join("")}
             </div>
@@ -1146,12 +1157,12 @@
         const img = document.getElementById(`img-${ticketId}`);
         const dots = document.querySelectorAll(`#dots-${ticketId} span`);
         const idx = Array.from(dots).findIndex((d) =>
-          d.classList.contains("active")
+          d.classList.contains("active"),
         );
         const newIdx = (idx + dir + dots.length) % dots.length;
         const images = JSON.parse(
           document.getElementById(`img-${ticketId}`).closest(".ticket").dataset
-            .images
+            .images,
         );
         img.src = images[newIdx];
         dots.forEach((d, i) => (d.className = i === newIdx ? "active" : ""));
