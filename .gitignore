@@ -1,7 +1,56 @@
+# 敏感資訊
 .env
 
 
-# pytest 快取
+
+# === Python 快取 ===
 __pycache__/
+*.pyc
 *.py[cod]
-*.pytest_cache/
+*.pyo
+
+
+
+# === pytest ===
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+
+
+# === 系統檔案 ===
+# macOS 系統自動產生的隱藏檔案（記錄資料夾顯示設定）
+# Mac 使用者會產生這個檔案
+.DS_Store
+
+# 使用 Windows 系統時, 開啟有圖片資料夾時產生的圖片縮圖快取
+# Windows 使用者會產生這個檔案
+Thumbs.db
+
+
+
+# === IDE 設定 ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+
+# === 虛擬環境 ===
+venv/
+.venv/
+env/
+
+
+
+# === 使用者上傳檔案 ===
+# uploads 資料夾中的圖片檔不被 commit 到 github, 但資料夾結構會保留 (若 clone 專案,不會缺少 uploads 這個資料夾)
+# 不忽略 .gitkeep (.gitkeep 是空檔案，目的是讓 Git 追蹤這個空資料夾)
+static/uploads/*
+!static/uploads/.gitkeep
+
+
+# invalid 資料夾（舊程式碼，之後會移除）
+invalid/
