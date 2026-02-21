@@ -12,6 +12,7 @@ PyJWT
 Pillow
 httpx
 pytest
+redis
 
 
 # 新增 AWS SDK
