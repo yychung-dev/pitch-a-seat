@@ -25,6 +25,24 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
+        env:
+          JWT_SECRET_KEY: "test-secret-key-for-ci"
+          DB_USER: "test_user"
+          DB_PASSWORD: "test_password"
+          DB_HOST: "localhost"
+          DB_NAME: "test_db"
+          SMTP_HOST: "smtp.test.com"
+          SMTP_USER: "test@test.com"
+          SMTP_PASS: "test_password"
+          AWS_ACCESS_KEY_ID: "test_access_key"
+          AWS_SECRET_ACCESS_KEY: "test_secret_key"
+          AWS_REGION: "ap-northeast-1"
+          S3_BUCKET_NAME: "test-bucket"
+          CLOUDFRONT_URL: "https://test.cloudfront.net"
+          REDIS_HOST: "localhost"
+          REDIS_PORT: "6379"
+          REDIS_PASSWORD: "test_password"
+          SQS_EMAIL_QUEUE_URL: "https://sqs.test.amazonaws.com/123456789/test-queue"
         run: |
           pytest tests/ -v
 
