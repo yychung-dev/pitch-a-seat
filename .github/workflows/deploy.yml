@@ -26,7 +26,7 @@ jobs:
 
       - name: Run tests
         env:
-          JWT_SECRET_KEY: "test-secret-key-for-ci"
+          JWT_SECRET_KEY: "test-secret-key-for-ci-1234567890"
           DB_USER: "test_user"
           DB_PASSWORD: "test_password"
           DB_HOST: "localhost"
