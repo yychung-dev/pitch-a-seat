@@ -1,6 +1,6 @@
-#  Pitch-A-Seat (CPBL Second-Hand Ticket Trading Platform)
+# Pitch-A-Seat (CPBL Second-Hand Ticket Trading Platform)
 
-##  Project Overview
+## Project Overview
 
 **Pitch-A-Seat** is a full-featured secondary ticket trading platform for CPBL games.  
 It supports ticket posting, secure payments, reservation matching, seller rating, in-site and email notifications, image uploads, and smart sorting.  
@@ -10,7 +10,7 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ---
 
-##  Main Features
+## Main Features
 
 - **Ticket Posting & Browsing**  
   Users can publish second-hand tickets with images, prices, and seat details. Tickets are browsed by clicking on a game date within the interactive calendar, allowing users to view all listings for that particular match, including seat details and prices.
@@ -36,11 +36,9 @@ The platform also incorporates a personalized recommendation system based on mul
 - **Smart Sorting & Filtering**  
   Users can sort listings by published date, price, seat area, or seller rate for an optimized browsing experience.
 
-
-
 ---
 
-##  Technical Highlights
+## Technical Highlights
 
 - **Implemented complete backend workflows for ticket trading and reservation matching**  
   Supports ticket posting, payment processing, reservation requests, seller rating, and in-site notifications. The backend is fully decoupled from the frontend to enhance scalability and maintainability.
@@ -74,42 +72,44 @@ The platform also incorporates a personalized recommendation system based on mul
 
 ---
 
-##  Tech Stack
+## Tech Stack
 
-###  Backend
+### Backend
+
 - Python (FastAPI, pytest)
 
-###  Database
+### Database
+
 - MySQL
 
-###  Cloud Services
-- AWS EC2  
-- AWS RDS  
+### Cloud Services
+
+- AWS EC2
+- AWS RDS
 - AWS ElastiCache (Redis)
 
-###  Development Tools
-- Git & GitHub  
-- Docker  
-- Nginx  
+### Development Tools
 
-###  Frontend
-- HTML  
-- CSS  
+- Git & GitHub
+- Docker
+- Nginx
+
+### Frontend
+
+- HTML
+- CSS
 - JavaScript
 
 ---
 
-##  System Architecture
+## System Architecture
 
-![Database ERD](./docs/system_architecture_pitchaseat_0813.png)
-
+![Database ERD](./docs/system_architecture_pitchaseat 260222.png)
 
 ---
 
-##  Database Schema
+## Database Schema
 
 ![Database ERD](./docs/database_schema_pitchaseat.png)
-
-
 
 ---
