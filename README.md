@@ -1,5 +1,24 @@
 # Pitch-A-Seat (CPBL Second-Hand Ticket Trading Platform)
 
+## Table of Contents
+
+1. [Project Overview](#project-overview)
+2. [Main Features](#main-features)
+3. [Technical Highlights](#technical-highlights)
+   - [Architecture & Code Quality](#architecture--code-quality)
+   - [CI/CD & DevOps](#cicd--devops)
+   - [AWS Cloud Services](#aws-cloud-services)
+   - [Core Features Implementation](#core-features-implementation)
+   - [Database & Performance](#database--performance)
+4. [Tech Stack](#tech-stack)
+5. [Project Structure](#project-structure)
+6. [System Architecture](#system-architecture)
+7. [Database Schema](#database-schema)
+8. [Local Development](#local-development)
+9. [Deployment](#deployment)
+
+---
+
 ## Project Overview
 
 **Pitch-A-Seat** is a full-featured secondary ticket trading platform for CPBL games.  
@@ -46,7 +65,7 @@ The platform also incorporates a personalized recommendation system based on mul
 
 - **Modular Architecture Design**  
   Refactored a monolithic 2,048-line `app.py` into a clean, maintainable structure with clear separation of concerns:
-  - `routes/` – API endpoints and request handling
+  - `routes/` – RESTful API endpoints and request handling
   - `models/` – Database operations and data access layer
   - `utils/` – Reusable utility functions (auth, email, S3, SQS, Redis)
   - `config/` – Environment configuration and settings management
@@ -117,7 +136,7 @@ The platform also incorporates a personalized recommendation system based on mul
 
 | Category            | Technologies                                     |
 | ------------------- | ------------------------------------------------ |
-| **Backend**         | Python, FastAPI                                  |
+| **Backend**         | Python, FastAPI (RESTful API)                    |
 | **Database**        | MySQL (AWS RDS)                                  |
 | **Caching**         | Redis (AWS ElastiCache)                          |
 | **Cloud Services**  | AWS EC2, S3, CloudFront, SQS, Lambda, CloudWatch |
@@ -170,7 +189,7 @@ pitch-a-seat/
 
 ## System Architecture
 
-![System Architecture](./docs/system_architecture_pitchaseat_260222.png)
+![System Architecture](./docs/system_architecture_pitchaseat_260223.png)
 
 ---
 
