@@ -1,0 +1,3 @@
+# 離線分析 / 評估專用，與 production 的 requirements.txt 分開，避免 Docker image 變肥
+pandas>=2.0
+pyarrow>=14.0

@@ -54,3 +54,7 @@ static/uploads/*
 
 # invalid 資料夾（舊程式碼，之後會移除）
 invalid/
+
+
+# 離線分析 snapshots
+recsys_offline/data/

@@ -12,12 +12,16 @@ Game and statistics APIs
 """
 
 
-from fastapi import APIRouter, HTTPException, Depends, Response
+from fastapi import APIRouter, HTTPException, Depends, Response, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import date, datetime, timedelta
 import json
-import math
+import uuid
+
+# import math
+
+from services.recommender import recommend, DEFAULT_PARAMS, assign_variant, VARIANTS
 
 from utils.auth_utils import get_current_user
 from utils.redis_utils import get_redis_client
@@ -28,7 +32,7 @@ from models.game_model import (
     get_team_trade_rank, get_events,
     get_member_favorite_teams, get_trades_in_period, get_reservations_in_period, get_games_in_period, get_hot_games_in_period
 )
-
+from models.recommendation_event_model import log_impressions, log_click
 
 
 # 取得此模組專屬的 logger（繼承 app.py 中 basicConfig 設定的 root logger）
@@ -74,6 +78,11 @@ class RecommendedGame(BaseModel):
     trade_count: int
     favorite_team_match: bool
 
+
+class RecommendationClick(BaseModel):
+    request_id: str
+    game_id: int
+    rank_pos: int
 # ================================================
 
 
@@ -217,7 +226,7 @@ async def get_top_games_api():
     
     # 2.若無快取或 Redis 錯誤，降級查詢資料庫: 查詢本月舉辦的比賽中，最熱賣的前五名 (不限訂單成立時間)
     try:    # 外層 try：資料庫操作
-        logger.info(f"DB query start (no cache)") # 從 log 一眼看出「為什麼走 DB」(因為沒有cache)
+        logger.info("DB query start (no cache)") # 從 log 一眼看出「為什麼走 DB」(因為沒有cache)
 
         top_games = get_top_games()  # router 層若發生錯誤, 會回拋錯誤並在這裡冒出來, 被 except Exception as e接住, 回 500
 
@@ -335,11 +344,185 @@ async def team_trade_rank_api():
 
 
 
+# # ================================================
+# # 取得會員的個人化推薦賽事前五名 API (Before Refactor)
+# @router.get("/recommendations", response_model=List[RecommendedGame])
+# async def get_recommendations_api(
+#     response: Response,
+#     user: Optional[Dict[str, Any]] = Depends(get_current_user)
+# ):
+#     try:
+#         today = datetime.now().date()
+#         past_90_days = today - timedelta(days=90)
+#         future_30_days = today + timedelta(days=30)
+#         future_60_days = today + timedelta(days=60)
+        
+#         # Step 1: 取得會員喜愛球隊
+#         favorite_teams = []
+#         if user:
+#             user_id = user["user_id"]
+#             favorite_teams = get_member_favorite_teams(user_id)
+            
+#         # 初始化隊伍得分 dictionary (會員喜愛球隊先給 2 分)
+#         team_scores = {team: 2.0 for team in favorite_teams}
+
+        
+#         # Step 2: 查詢會員過去 90 天內的全部交易紀錄 (已出貨訂單)
+#         trades = get_trades_in_period(past_90_days)
+
+#         trade_contributions = []
+        
+#         for trade in trades:
+#             days_diff = (today - trade["created_at"].date()).days  
+#             weight = 1.2 * math.exp(-0.01 * days_diff) 
+#             trade_contributions.append(weight) 
+#             for team in [trade["team_home"], trade["team_away"]]: 
+#                 team_scores[team] = team_scores.get(team, 0) + weight
+
+
+#         # 正規化交易得分
+#         if trade_contributions:
+#             mean_trade = sum(trade_contributions) / len(trade_contributions)
+#             for team in team_scores: 
+#                 if team not in favorite_teams: 
+#                     team_scores[team] = max(0, team_scores[team] - mean_trade)
+                        
+        
+        
+#         # Step 3: 查詢會員過去 90 天內的全部預約紀錄 
+#         reservations = get_reservations_in_period(past_90_days)
+
+#         reservation_contributions = []
+#         for res in reservations:
+#             days_diff = (today - res["created_at"].date()).days
+#             weight = 1.0 * math.exp(-0.01 * days_diff)
+#             reservation_contributions.append(weight)
+#             for team in [res["team_home"], res["team_away"]]:
+#                 team_scores[team] = team_scores.get(team, 0) + weight
+
+
+#         # 正規化預約得分
+#         if reservation_contributions:
+#             mean_res = sum(reservation_contributions) / len(reservation_contributions)
+#             for team in team_scores:
+#                 if team not in favorite_teams:
+#                     team_scores[team] = max(0, team_scores[team] - mean_res)    
+
+
+#         # Step 4: 查詢未來 30 天比賽
+#         games = get_games_in_period(today, future_30_days)
+        
+
+#         # Step 5: 計算推薦分數
+#         recommended_games = []
+#         for game in games:
+#             score = team_scores.get(game["team_home"], 0) + team_scores.get(game["team_away"], 0)
+#             # 加權熱門比賽 (目的: 交易量大的比賽，根據交易量把這場比賽的推薦分數多加一點分 )
+#             score += 0.1 * game["trade_count"]
+#             favorite_team_match = any(
+#                 team in [game["team_home"], game["team_away"]] for team in favorite_teams
+#             )
+#             recommended_games.append({
+#                 "game_id": game["game_id"],
+#                 "game_date": game["game_date"].strftime("%Y-%m-%d"),
+#                 "start_time": str(game["start_time"])[:5],
+#                 "team_home": game["team_home"],
+#                 "team_away": game["team_away"],
+#                 "stadium": game["stadium"],
+#                 "ticket_count": game["ticket_count"],
+#                 "recommendation_score": round(score, 2),
+#                 "trade_count": game["trade_count"],
+#                 "favorite_team_match": favorite_team_match
+#             })
+
+
+#         # 過濾掉 0 分的個人化推薦比賽
+#         recommended_games = [g for g in recommended_games if g["recommendation_score"] > 0]
+#         # 按推薦分數降序排序
+#         recommended_games.sort(key=lambda x: x["recommendation_score"], reverse=True)
+#         top_games = recommended_games[:5]
+
+
+
+#         # Step 6: 冷啟動處理
+#         if len(top_games) < 5:
+#             needed = 5 - len(top_games) # 計算需要補幾場才能讓總數有 5 場
+            
+#             # 查詢未來 60 天內有已出貨訂單紀錄的比賽 (依熱門程度由多至少排序, 取 needed+10 筆資料)
+#             hot_games = get_hot_games_in_period(today, future_60_days, needed + 10)
+#             # 用 needed+10 先多撈一些比賽，確保過濾掉重複game_id的比賽後, 總數量還足夠 (用 trade_count DESC 由多至少排出熱門順序)
+
+#             # 建立目前 top_games 中所有 game_id 的集合（用於快速查詢）
+#             existing_ids = {g["game_id"] for g in top_games}
+
+#             # 針對 hot_games 裡的個別比賽做 2 個檢查，檢查通過就 append 進 top_games
+#             for game in hot_games:
+#                 # 檢查 1 : 每次進入 loop 的第一步都先檢查：目前是否已經補滿五場 (目的: 先檢查邊界條件，不符合就提前離開)
+#                 if len(top_games) >= 5:
+#                     break
+               
+#                 # 檢查 2 : 檢查這圈 loop 的這場熱門比賽，是否與現存於 top_games 中的比賽 重複 (比對 game_id )
+#                 if game["game_id"] not in existing_ids:
+#                     favorite_team_match = any(
+#                         team in [game["team_home"], game["team_away"]] for team in favorite_teams
+#                     )
+#                     # append 和 add 是「通過檢查後的動作」，所以必須在 if 裡面。
+#                     top_games.append({
+#                         "game_id": game["game_id"],
+#                         "game_date": game["game_date"].strftime("%Y-%m-%d"),
+#                         "start_time": str(game["start_time"])[:5],
+#                         "team_home": game["team_home"],
+#                         "team_away": game["team_away"],
+#                         "stadium": game["stadium"],
+#                         "ticket_count": game["ticket_count"],
+#                         "recommendation_score": 0.0,  # 冷啟動分數設為 0
+#                         "trade_count": game["trade_count"],
+#                         "favorite_team_match": favorite_team_match
+#                     })
+                    
+#                     # 做完這圈 loop 比賽的 append 後，將這場比賽的 game_id 存進 existing_ids 中，目標: 更新 existing_ids 這個集合，避免後續重複 append (理論上，hot_games 中不會有重複的比賽，但避免意外，所以做這個設計)
+#                     existing_ids.add(game["game_id"])
+
+
+#         # step 7 : 冷啟動做完後，最後一次檢查排行榜是否有 5 場比賽。若仍不足 5 場，在前端 Response Header 做訊息提示、在後端印 log 提醒開發者
+#         if len(top_games) < 5:
+#             print(f"推薦比賽數量不足：目前僅有 {len(top_games)}場推薦比賽")
+#             # Header 只能用英文和數字 ( HTTP Header 只支援 ASCII 字元（或 latin-1 編碼），不支援中文字元 )
+#             response.headers["X-Recommendation-Message"] = f"Only {len(top_games)} games available"
+
+#         # step 8 : 記錄推薦結果（開發時用來調整和嘗試）
+#         logger.debug(f"Recommended games: {[g['game_id'] for g in top_games[:5]]}")
+
+
+#         # 在後端印出五場推薦比賽的資訊，作為確認 (開發階段)
+#         # print("\n=== Top 5 Recommended Games ===")
+#         # for idx, game in enumerate(top_games[:5], 1):
+#         #     print(f"Rank {idx}:")
+#         #     print(f"  Game ID: {game['game_id']}")
+#         #     print(f"  Date: {game['game_date']}")
+#         #     print(f"  Teams: {game['team_home']} vs {game['team_away']}")
+#         #     print(f"  Stadium: {game['stadium']}")
+#         #     print(f"  Recommendation Score: {game['recommendation_score']}")
+#         #     print(f"  Trade Count: {game['trade_count']}")
+#         #     print(f"  Favorite Team Match: {game['favorite_team_match']}")
+#         #     print(f"  Ticket Count: {game['ticket_count']}")
+#         #     print("-" * 40)
+    
+#         # step 9 : 將 top_games 回傳給前端，再次確認只取前 5 名
+#         return top_games[:5]
+
+#     except Exception as e:
+#         print(f"查詢推薦場次錯誤: {e}")
+#         raise HTTPException(status_code=500, detail="查詢推薦場次失敗")
+
+# ================================================
+
 # ================================================
 # 取得會員的個人化推薦賽事前五名 API
 @router.get("/recommendations", response_model=List[RecommendedGame])
 async def get_recommendations_api(
     response: Response,
+    background_tasks: BackgroundTasks,
     user: Optional[Dict[str, Any]] = Depends(get_current_user)
 ):
     try:
@@ -347,163 +530,66 @@ async def get_recommendations_api(
         past_90_days = today - timedelta(days=90)
         future_30_days = today + timedelta(days=30)
         future_60_days = today + timedelta(days=60)
+
+        # 取得會員喜愛球隊 
+        # 已強制登入 (get_current_user 會擋掉未帶 token 的請求)，故 user 必不為 None
+        user_id = user["user_id"]
+        favorite_teams = get_member_favorite_teams(user_id)
+
+        # I/O 集中在路由層：抓行為資料與候選賽事
+        # per-user：只取「這位會員自己」的行為 (Step 2 核心改動)
+        trades = get_trades_in_period(user_id, past_90_days)
+        reservations = get_reservations_in_period(user_id, past_90_days)
+        candidate_games = get_games_in_period(today, future_30_days)
+        hot_games = get_hot_games_in_period(today, future_60_days, DEFAULT_PARAMS.top_k + 10)
+        # 冷啟動候補：總是先撈一批熱門賽事，確保「線上服務」與「離線評估」走同一條 recommend()
+
+
+        variant = assign_variant(user_id)          # 決定這位會員的臂
+        params = VARIANTS[variant]                 # 對應參數（個人化 or 純人氣）
         
-        # Step 1: 取得會員喜愛球隊
-        favorite_teams = []
-        if user:
-            user_id = user["user_id"]
-            favorite_teams = get_member_favorite_teams(user_id)
-            
-        # 初始化隊伍得分 dictionary (會員喜愛球隊先給 2 分)
-        team_scores = {team: 2.0 for team in favorite_teams}
+        # 純邏輯：交給 services 層 (無 DB / 無 HTTP)
+        top_games = recommend(
+            favorite_teams=favorite_teams,
+            trades=trades,
+            reservations=reservations,
+            candidate_games=candidate_games,
+            hot_games=hot_games,
+            today=today,
+            params=params,    # 用分流後的參數
+        )
 
+
+        # 事件記錄：產生本次推薦的 request_id，背景非阻塞寫曝光，並把 id 回傳給前端供點擊對應
+        request_id = str(uuid.uuid4())
+        response.headers["X-Recommendation-Request-Id"] = request_id
+        if top_games:
+            background_tasks.add_task(
+                log_impressions, request_id, user_id, variant, top_games
+            )   # 記真實 variant
         
-        # Step 2: 查詢會員過去 90 天內的全部交易紀錄 (已出貨訂單)
-        trades = get_trades_in_period(past_90_days)
-
-        trade_contributions = []
-        
-        for trade in trades:
-            days_diff = (today - trade["created_at"].date()).days  
-            weight = 1.2 * math.exp(-0.01 * days_diff) 
-            trade_contributions.append(weight) 
-            for team in [trade["team_home"], trade["team_away"]]: 
-                team_scores[team] = team_scores.get(team, 0) + weight
-
-
-        # 正規化交易得分
-        if trade_contributions:
-            mean_trade = sum(trade_contributions) / len(trade_contributions)
-            for team in team_scores: 
-                if team not in favorite_teams: 
-                    team_scores[team] = max(0, team_scores[team] - mean_trade)
-                        
-        
-        
-        # Step 3: 查詢會員過去 90 天內的全部預約紀錄 
-        reservations = get_reservations_in_period(past_90_days)
-
-        reservation_contributions = []
-        for res in reservations:
-            days_diff = (today - res["created_at"].date()).days
-            weight = 1.0 * math.exp(-0.01 * days_diff)
-            reservation_contributions.append(weight)
-            for team in [res["team_home"], res["team_away"]]:
-                team_scores[team] = team_scores.get(team, 0) + weight
-
-
-        # 正規化預約得分
-        if reservation_contributions:
-            mean_res = sum(reservation_contributions) / len(reservation_contributions)
-            for team in team_scores:
-                if team not in favorite_teams:
-                    team_scores[team] = max(0, team_scores[team] - mean_res)    
-
-
-        # Step 4: 查詢未來 30 天比賽
-        games = get_games_in_period(today, future_30_days)
-        
-
-        # Step 5: 計算推薦分數
-        recommended_games = []
-        for game in games:
-            score = team_scores.get(game["team_home"], 0) + team_scores.get(game["team_away"], 0)
-            # 加權熱門比賽 (目的: 交易量大的比賽，根據交易量把這場比賽的推薦分數多加一點分 )
-            score += 0.1 * game["trade_count"]
-            favorite_team_match = any(
-                team in [game["team_home"], game["team_away"]] for team in favorite_teams
-            )
-            recommended_games.append({
-                "game_id": game["game_id"],
-                "game_date": game["game_date"].strftime("%Y-%m-%d"),
-                "start_time": str(game["start_time"])[:5],
-                "team_home": game["team_home"],
-                "team_away": game["team_away"],
-                "stadium": game["stadium"],
-                "ticket_count": game["ticket_count"],
-                "recommendation_score": round(score, 2),
-                "trade_count": game["trade_count"],
-                "favorite_team_match": favorite_team_match
-            })
-
-
-        # 過濾掉 0 分的個人化推薦比賽
-        recommended_games = [g for g in recommended_games if g["recommendation_score"] > 0]
-        # 按推薦分數降序排序
-        recommended_games.sort(key=lambda x: x["recommendation_score"], reverse=True)
-        top_games = recommended_games[:5]
-
-
-
-        # Step 6: 冷啟動處理
-        if len(top_games) < 5:
-            needed = 5 - len(top_games) # 計算需要補幾場才能讓總數有 5 場
-            
-            # 查詢未來 60 天內有已出貨訂單紀錄的比賽 (依熱門程度由多至少排序, 取 needed+10 筆資料)
-            hot_games = get_hot_games_in_period(today, future_60_days, needed + 10)
-            # 用 needed+10 先多撈一些比賽，確保過濾掉重複game_id的比賽後, 總數量還足夠 (用 trade_count DESC 由多至少排出熱門順序)
-
-            # 建立目前 top_games 中所有 game_id 的集合（用於快速查詢）
-            existing_ids = {g["game_id"] for g in top_games}
-
-            # 針對 hot_games 裡的個別比賽做 2 個檢查，檢查通過就 append 進 top_games
-            for game in hot_games:
-                # 檢查 1 : 每次進入 loop 的第一步都先檢查：目前是否已經補滿五場 (目的: 先檢查邊界條件，不符合就提前離開)
-                if len(top_games) >= 5:
-                    break
-               
-                # 檢查 2 : 檢查這圈 loop 的這場熱門比賽，是否與現存於 top_games 中的比賽 重複 (比對 game_id )
-                if game["game_id"] not in existing_ids:
-                    favorite_team_match = any(
-                        team in [game["team_home"], game["team_away"]] for team in favorite_teams
-                    )
-                    # append 和 add 是「通過檢查後的動作」，所以必須在 if 裡面。
-                    top_games.append({
-                        "game_id": game["game_id"],
-                        "game_date": game["game_date"].strftime("%Y-%m-%d"),
-                        "start_time": str(game["start_time"])[:5],
-                        "team_home": game["team_home"],
-                        "team_away": game["team_away"],
-                        "stadium": game["stadium"],
-                        "ticket_count": game["ticket_count"],
-                        "recommendation_score": 0.0,  # 冷啟動分數設為 0
-                        "trade_count": game["trade_count"],
-                        "favorite_team_match": favorite_team_match
-                    })
-                    
-                    # 做完這圈 loop 比賽的 append 後，將這場比賽的 game_id 存進 existing_ids 中，目標: 更新 existing_ids 這個集合，避免後續重複 append (理論上，hot_games 中不會有重複的比賽，但避免意外，所以做這個設計)
-                    existing_ids.add(game["game_id"])
-
-
-        # step 7 : 冷啟動做完後，最後一次檢查排行榜是否有 5 場比賽。若仍不足 5 場，在前端 Response Header 做訊息提示、在後端印 log 提醒開發者
-        if len(top_games) < 5:
+        # 不足 5 場時的提示 (HTTP 副作用留在路由層)
+        if len(top_games) < DEFAULT_PARAMS.top_k:
             print(f"推薦比賽數量不足：目前僅有 {len(top_games)}場推薦比賽")
-            # Header 只能用英文和數字 ( HTTP Header 只支援 ASCII 字元（或 latin-1 編碼），不支援中文字元 )
             response.headers["X-Recommendation-Message"] = f"Only {len(top_games)} games available"
 
-        # step 8 : 記錄推薦結果（開發時用來調整和嘗試）
-        logger.debug(f"Recommended games: {[g['game_id'] for g in top_games[:5]]}")
-
-
-        # 在後端印出五場推薦比賽的資訊，作為確認 (開發階段)
-        # print("\n=== Top 5 Recommended Games ===")
-        # for idx, game in enumerate(top_games[:5], 1):
-        #     print(f"Rank {idx}:")
-        #     print(f"  Game ID: {game['game_id']}")
-        #     print(f"  Date: {game['game_date']}")
-        #     print(f"  Teams: {game['team_home']} vs {game['team_away']}")
-        #     print(f"  Stadium: {game['stadium']}")
-        #     print(f"  Recommendation Score: {game['recommendation_score']}")
-        #     print(f"  Trade Count: {game['trade_count']}")
-        #     print(f"  Favorite Team Match: {game['favorite_team_match']}")
-        #     print(f"  Ticket Count: {game['ticket_count']}")
-        #     print("-" * 40)
-    
-        # step 9 : 將 top_games 回傳給前端，再次確認只取前 5 名
-        return top_games[:5]
+        logger.debug(f"Recommended games: {[g['game_id'] for g in top_games]}")
+        return top_games
 
     except Exception as e:
         print(f"查詢推薦場次錯誤: {e}")
         raise HTTPException(status_code=500, detail="查詢推薦場次失敗")
+# ================================================
 
+# ================================================
+@router.post("/recommendations/click", status_code=204)
+async def log_recommendation_click(
+    payload: RecommendationClick,
+    user: Optional[Dict[str, Any]] = Depends(get_current_user)
+):
+    variant = assign_variant(user["user_id"])  # 同一會員雜湊 → 與曝光時同一臂
+    # log_click 內部已吞例外，記錄失敗也回 204、不影響使用者
+    log_click(payload.request_id, user["user_id"], payload.game_id,
+              payload.rank_pos, variant)
+    
 # ================================================

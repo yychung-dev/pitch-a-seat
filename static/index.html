@@ -1229,7 +1229,7 @@
             "無法載入圓餅圖";
         }
       }
-      // 取得個人化推薦比賽（即將來臨比賽）
+      // 取得個人化推薦比賽（即將來臨比賽）—— 卡片可點擊：記錄點擊 + 導向該場買票頁
       async function fetchUpcomingGames() {
         const list = document.getElementById("upcomingGamesList");
         list.innerHTML = "";
@@ -1244,20 +1244,40 @@
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) throw new Error("無法取得推薦比賽");
+          const requestId = res.headers.get("X-Recommendation-Request-Id"); // 讀回 request_id（綁定點擊與曝光）
           const games = await res.json();
           if (games.length === 0) {
             list.innerHTML =
               '<li class="top-game-item ranked">目前無符合條件的推薦比賽</li>';
             return;
           }
-          games.forEach((game) => {
+          games.forEach((game, index) => {
             const li = document.createElement("li");
             li.className = "top-game-item ranked";
+            li.style.cursor = "pointer";
             li.innerHTML = `
-              <div class="game-info">
-                ${game.game_date}<br>${game.team_away} vs ${game.team_home}
-              </div>
-            `;
+        <div class="game-info">
+          ${game.game_date}<br>${game.team_away} vs ${game.team_home}
+        </div>
+      `;
+            li.addEventListener("click", () => {
+              // 1) 記錄點擊：keepalive 確保導頁後仍送達
+              fetch("/api/recommendations/click", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  request_id: requestId,
+                  game_id: game.game_id,
+                  rank_pos: index + 1, // 名次（清單位置）
+                }),
+                keepalive: true,
+              }).catch((e) => console.error("點擊記錄失敗:", e));
+              // 2) 導向買票頁（簡單版：不帶特定場次）
+              location.href = "/buy";
+            });
             list.appendChild(li);
           });
         } catch (e) {
