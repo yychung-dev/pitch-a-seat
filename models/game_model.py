@@ -310,47 +310,79 @@ def get_member_favorite_teams(user_id: int) -> List[str]:
 
 
 # ================================================
-# 查詢會員在過去 90 天內的所有交易紀錄 (依訂單成立日期為準, 查詢 90 天內所有已出貨訂單的資料. 不限於球賽舉辦日期)
-# 回傳值: 每筆已出貨訂單的資料(主隊名、客隊名、訂單成立日期), 以 list 裝著每筆訂單資料 dict; 若無交易紀錄, 回傳[] 空 list
-def get_trades_in_period(start_date: date) -> List[Dict]:
+# Before refactor
+# # 查詢會員在過去 90 天內的所有交易紀錄 (依訂單成立日期為準, 查詢 90 天內所有已出貨訂單的資料. 不限於球賽舉辦日期)
+# # 回傳值: 每筆已出貨訂單的資料(主隊名、客隊名、訂單成立日期), 以 list 裝著每筆訂單資料 dict; 若無交易紀錄, 回傳[] 空 list
+# def get_trades_in_period(start_date: date) -> List[Dict]:
+#     trade_query = """
+#         SELECT g.team_home, g.team_away, o.created_at
+#         FROM orders o
+#         JOIN tickets_for_sale t ON o.ticket_id = t.id
+#         JOIN games g ON t.game_id = g.id
+#         WHERE o.shipment_status = '已出貨'
+#             AND o.created_at >= %s
+#     """
+#     with get_connection() as conn:
+#         with conn.cursor(dictionary=True) as cursor:
+#             cursor.execute(trade_query, (start_date,))
+#             trades = cursor.fetchall()
+    
+#     return trades
+# ================================================
+
+# After refactor
+# 查詢「指定會員」過去一段期間內的所有交易紀錄 (已出貨訂單，依 buyer_id 過濾)
+def get_trades_in_period(member_id: int, start_date: date) -> List[Dict]:
     trade_query = """
         SELECT g.team_home, g.team_away, o.created_at
         FROM orders o
         JOIN tickets_for_sale t ON o.ticket_id = t.id
         JOIN games g ON t.game_id = g.id
         WHERE o.shipment_status = '已出貨'
+            AND o.buyer_id = %s
             AND o.created_at >= %s
     """
     with get_connection() as conn:
         with conn.cursor(dictionary=True) as cursor:
-            cursor.execute(trade_query, (start_date,))
+            cursor.execute(trade_query, (member_id, start_date))
             trades = cursor.fetchall()
-    
     return trades
-# ================================================
-
-
 
 
 # ================================================
-# 查詢會員在過去 90 天內的所有預約紀錄 (依預約成立日期為準, 查詢 90 天內所有預約的資料. 不限於球賽舉辦日期)
-# 回傳值: 每筆預約的資料(主隊名、客隊名、預約成立日期), 以 list 裝著每筆預約資料 dict; 若無預約紀錄, 回傳[] 空 list
-def get_reservations_in_period(start_date: date) -> List[Dict]:
+# Before refactor
+# # 查詢會員在過去 90 天內的所有預約紀錄 (依預約成立日期為準, 查詢 90 天內所有預約的資料. 不限於球賽舉辦日期)
+# # 回傳值: 每筆預約的資料(主隊名、客隊名、預約成立日期), 以 list 裝著每筆預約資料 dict; 若無預約紀錄, 回傳[] 空 list
+# def get_reservations_in_period(start_date: date) -> List[Dict]:
+#     reservation_query = """
+#         SELECT g.team_home, g.team_away, r.created_at
+#         FROM reservations r
+#         JOIN games g ON r.game_id = g.id
+#         WHERE r.created_at >= %s
+#     """
+#     with get_connection() as conn:
+#         with conn.cursor(dictionary=True) as cursor:
+#             cursor.execute(reservation_query, (start_date,))
+#             reservations = cursor.fetchall()
+
+#     return reservations
+# ================================================
+
+# After refactor
+# 查詢「指定會員」過去一段期間內的所有預約紀錄 (依 member_id 過濾)
+def get_reservations_in_period(member_id: int, start_date: date) -> List[Dict]:
     reservation_query = """
         SELECT g.team_home, g.team_away, r.created_at
         FROM reservations r
         JOIN games g ON r.game_id = g.id
-        WHERE r.created_at >= %s
+        WHERE r.member_id = %s
+            AND r.created_at >= %s
     """
     with get_connection() as conn:
         with conn.cursor(dictionary=True) as cursor:
-            cursor.execute(reservation_query, (start_date,))
+            cursor.execute(reservation_query, (member_id, start_date))
             reservations = cursor.fetchall()
-
     return reservations
-# ================================================
-
-
 
 
 # ================================================
@@ -385,7 +417,7 @@ def get_games_in_period(start_date: date, end_date: date) -> List[Dict]:
 
 
 # ================================================
-# 取得未來 60 天內的所有「有已出貨訂單」的比賽資訊 (依訂單成立數量由多至少排序作為熱門排序，總數限取 needed + 10 筆資料)
+# 取得未來 60 天內的所有「未來賽事依熱門度排序,無訂單者仍納入作為冷啟動候補」的比賽資訊 (依訂單成立數量由多至少排序作為熱門排序，總數限取 needed + 10 筆資料)
 # 回傳值: 未來 60 天內的所有有已出貨訂單的比賽資訊 (包含: 個別賽事資訊 & 個別賽事的曾經上架的票券數量 & 個別賽事的訂單數量 ), 以 list 裝著每筆賽事資料 dict; ; 若無比賽資料, 回傳[] 空 list
 def get_hot_games_in_period(start_date: date, end_date: date, limit: int) -> List[Dict]:
     hot_games_query = """
@@ -399,12 +431,11 @@ def get_hot_games_in_period(start_date: date, end_date: date, limit: int) -> Lis
             COUNT(t.id) AS ticket_count,
             COUNT(DISTINCT o.id) AS trade_count
         FROM games g
-        JOIN tickets_for_sale t ON g.id = t.game_id
-        JOIN orders o ON t.id = o.ticket_id
-        WHERE o.shipment_status = '已出貨'
-            AND g.game_date BETWEEN %s AND %s
+        LEFT JOIN tickets_for_sale t ON g.id = t.game_id
+        LEFT JOIN orders o ON t.id = o.ticket_id AND o.shipment_status = '已出貨'
+        WHERE g.game_date BETWEEN %s AND %s
         GROUP BY g.id
-        ORDER BY trade_count DESC
+        ORDER BY trade_count DESC, g.game_date ASC
         LIMIT %s
     """
     with get_connection() as conn:
