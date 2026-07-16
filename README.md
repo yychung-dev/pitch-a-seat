@@ -51,7 +51,7 @@ The platform also incorporates a personalized recommendation system based on mul
 - **Trending Matches Leaderboard**  
   Ranks the most traded games on the homepage based on real-time stats.
 
-- **Personalized Recommendations**  
+- **Personalized Recommendations ( [RECOMMENDATION_SYSTEM](./RECOMMENDATION_SYSTEM.zh-TW.md) )**  
   Recommends suitable tickets based on user's favorite team, order history, and reservation history.
 
 - **Smart Sorting & Filtering**  
